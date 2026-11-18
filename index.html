@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>HEMO-AVALIA</title>
+<style>
+:root{--g900:#14532d;--g700:#1f7a43;--g500:#3aa563;--g100:#e4f4ea;--bg:#f5faf7;--ink:#17261d;--mut:#5d6f64;--line:#cfe3d6;--warn:#b45309;--bad:#b42318}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:var(--g900);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+header b{font-size:18px;letter-spacing:.3px}header small{display:block;opacity:.8;font-size:12px}
+#timer{font:600 20px ui-monospace,Menlo,monospace;background:var(--g700);padding:4px 10px;border-radius:8px}
+#timer.low{background:var(--bad)}
+main{max-width:640px;margin:0 auto;padding:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
+h1{font-size:22px;margin:4px 0 8px;color:var(--g900)}h2{font-size:18px;margin:0 0 10px;color:var(--g900)}
+label{display:block;font-weight:600;margin:12px 0 4px;font-size:14px}
+input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}
+input:focus,select:focus,textarea:focus,button:focus-visible{outline:3px solid var(--g500);outline-offset:1px}
+button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:12px 18px;background:var(--g700);color:#fff;cursor:pointer}
+button.sec{background:var(--g100);color:var(--g900)}button:disabled{opacity:.5}
+.row{display:flex;gap:10px;margin-top:14px}.row>*{flex:1}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:10px;padding:12px;margin:8px 0;cursor:pointer;background:#fff}
+.opt.sel{border-color:var(--g700);background:var(--g100)}
+.opt input{width:auto;margin-top:4px}
+.map{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.map button{padding:6px 0;width:34px;font-size:13px;background:#fff;color:var(--ink);border:1px solid var(--line)}
+.map button.done{background:var(--g100);border-color:var(--g500)}.map button.cur{background:var(--g700);color:#fff}
+.alert{padding:10px 12px;border-radius:8px;margin:10px 0;font-size:14px}
+.err{background:#fde8e6;color:var(--bad)}.warn{background:#fef3c7;color:var(--warn)}
+.big{font-size:56px;font-weight:700;margin:0;color:var(--g900)}
+.ok{color:var(--g700)}.no{color:var(--bad)}
+.hide{display:none}.mut{color:var(--mut);font-size:14px}
+ul{padding-left:20px}
+</style>
+</head>
+<body>
+<header><div><b>HEMO-AVALIA</b><small>HGKNMPA · Serviço de Hemoterapia</small></div><div id="timer" class="hide">60:00</div></header>
+<main>
+
+<section id="s-id" class="card">
+<h1>Identificação do candidato</h1>
+<p class="mut">Preencha os seus dados. Os resultados são identificados e vistos pela chefia do Serviço.</p>
+<label for="full_name">Nome completo</label><input id="full_name" autocomplete="name">
+<label for="agent_number">Número de agente</label><input id="agent_number" inputmode="text">
+<label for="category">Categoria profissional</label><input id="category" placeholder="Ex.: Técnico de Diagnóstico e Terapêutica">
+<label>Instituição</label><input value="HGKNMPA" disabled>
+<label>Serviço</label><input value="Hemoterapia" disabled>
+<label for="experience">Tempo de experiência profissional</label>
+<select id="experience"><option value="">Seleccione</option><option>Menos de 1 ano</option><option>1 a 3 anos</option><option>4 a 7 anos</option><option>8 a 15 anos</option><option>Mais de 15 anos</option></select>
+<label for="education_level">Nível académico</label>
+<select id="education_level"><option value="">Seleccione</option><option>Médio</option><option>Bacharelato</option><option>Licenciatura</option><option>Mestrado</option><option>Doutoramento</option></select>
+<label for="training_area">Área de formação</label><input id="training_area">
+<label for="training_institution">Instituição de formação</label><input id="training_institution">
+<label for="education_status">Estado da formação académica</label>
+<select id="education_status"><option value="">Seleccione</option><option>Concluída</option><option>Em curso</option></select>
+<label for="hemo_training">Tem formação específica em Hemoterapia?</label>
+<select id="hemo_training"><option value="">Seleccione</option><option>Sim</option><option>Não</option></select>
+<div id="hemo-extra" class="hide">
+<label for="h_hosp">Hospital</label><input id="h_hosp">
+<label for="h_tipo">Tipo de formação</label><input id="h_tipo">
+<label for="h_ano">Ano</label><input id="h_ano" inputmode="numeric" maxlength="4">
+</div>
+<div id="e-id" class="alert err hide"></div>
+<div class="row"><button id="b-next">Continuar</button></div>
+</section>
+
+<section id="s-inst" class="card hide">
+<h1>Instruções da prova</h1>
+<ul>
+<li>A prova tem <b>50 questões</b> de escolha múltipla, sorteadas do banco do Serviço.</li>
+<li>Tem <b>60 minutos</b>. O tempo é controlado pelo servidor e continua a contar se fechar a página.</li>
+<li>Só pode fazer a prova <b>uma vez</b>.</li>
+<li>Se mudar de separador ou sair da página, a ocorrência é registada e analisada depois pela chefia. A prova não é cancelada.</li>
+<li>A nota (0 a 20) aparece logo após a submissão. A nota mínima é 10 valores.</li>
+</ul>
+<div id="e-inst" class="alert err hide"></div>
+<div class="row"><button class="sec" id="b-back">Voltar</button><button id="b-start">Iniciar prova</button></div>
+</section>
+
+<section id="s-exam" class="hide">
+<div class="card">
+<div class="mut" id="q-count"></div>
+<h2 id="q-text" style="margin-top:6px"></h2>
+<div id="q-opts"></div>
+<div class="row"><button class="sec" id="b-prev">Anterior</button><button id="b-nextq">Seguinte</button></div>
+</div>
+<div class="card"><div class="mut">Questões (as verdes já têm resposta)</div><div class="map" id="q-map"></div>
+<div id="e-exam" class="alert err hide"></div>
+<div class="row"><button id="b-submit">Submeter prova</button></div></div>
+<div id="warn" class="alert warn hide">Saída da página registada. A prova continua, mas a ocorrência será analisada pela chefia.</div>
+</section>
+
+<section id="s-res" class="card hide" style="text-align:center">
+<h1>Prova concluída</h1>
+<p class="big" id="r-score">0</p>
+<p class="mut">valores (0 a 20)</p>
+<p id="r-state" style="font-weight:700;font-size:18px"></p>
+<p class="mut" id="r-detail"></p>
+</section>
+
+<section id="s-fb" class="card hide">
+<h2>Sugestões ao Serviço</h2>
+<p class="mut">A sua opinião ajuda a planear formações. Indique também as suas necessidades de capacitação.</p>
+<label for="suggestion">Sugestões para melhorar o Serviço</label><textarea id="suggestion" rows="4"></textarea>
+<label for="needs">Temas em que gostaria de ter formação</label><textarea id="needs" rows="4"></textarea>
+<div id="e-fb" class="alert err hide"></div>
+<div class="row"><button id="b-fb">Enviar sugestões</button></div>
+</section>
+
+<section id="s-end" class="card hide"><h1>Obrigado</h1><p>A sua participação foi registada. Já pode fechar esta página.</p></section>
+
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const SB_URL="https://ltlhrgybrqrrsgfdleyp.supabase.co";
+const SB_KEY="sb_publishable_V7N4B62Po4MQYw0fpKUFjg_N3IemBEI";
+const db=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false}});
+const $=id=>document.getElementById(id);
+const show=id=>{["s-id","s-inst","s-exam","s-res","s-fb","s-end"].forEach(s=>$(s).classList.toggle("hide",s!==id));window.scrollTo(0,0)};
+const msg=(id,t)=>{const e=$(id);e.textContent=t;e.classList.toggle("hide",!t)};
+const clean=m=>(m||"Erro de ligação. Verifique a internet e tente outra vez.").replace(/^.*?exception:\s*/i,"");
+let P={},attempt=null,Q=[],ans={},cur=0,offset=0,expires=0,tick=null,active=false,done=false;
+
+$("hemo_training").onchange=e=>$("hemo-extra").classList.toggle("hide",e.target.value!=="Sim");
+
+$("b-next").onclick=()=>{
+ const need=["full_name","agent_number","category","experience","education_level","training_area","training_institution","education_status","hemo_training"];
+ for(const k of need){if(!$(k).value.trim()){msg("e-id","Preencha todos os campos obrigatórios.");$(k).focus();return}}
+ if($("hemo_training").value==="Sim"&&(!$("h_hosp").value.trim()||!$("h_tipo").value.trim()||!$("h_ano").value.trim())){msg("e-id","Indique hospital, tipo de formação e ano.");return}
+ msg("e-id","");
+ P={};need.forEach(k=>P[k]=$(k).value.trim());
+ P.institution="HGKNMPA";P.service="Hemoterapia";
+ P.hemo_training_details=P.hemo_training==="Sim"?`Hospital: ${$("h_hosp").value.trim()}; Tipo: ${$("h_tipo").value.trim()}; Ano: ${$("h_ano").value.trim()}`:null;
+ show("s-inst");
+};
+$("b-back").onclick=()=>show("s-id");
+
+$("b-start").onclick=async()=>{
+ const b=$("b-start");b.disabled=true;msg("e-inst","");
+ const {data,error}=await db.rpc("start_exam",{p:P});
+ b.disabled=false;
+ if(error){msg("e-inst",clean(error.message));return}
+ attempt=data.attempt_id;
+ offset=new Date(data.server_now).getTime()-Date.now();
+ expires=new Date(data.expires_at).getTime();
+ Q=data.questions.map(q=>({id:q.id,text:q.text,opts:q.options.map((t,i)=>({t,i})).sort(()=>Math.random()-.5)}));
+ cur=0;ans={};active=true;
+ show("s-exam");$("timer").classList.remove("hide");
+ render();clearInterval(tick);tick=setInterval(clock,500);clock();
+};
+
+function clock(){
+ const left=Math.max(0,expires-(Date.now()+offset)),m=Math.floor(left/60000),s=Math.floor(left%60000/1000);
+ $("timer").textContent=String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+ $("timer").classList.toggle("low",left<5*60000);
+ if(left<=0&&active)submit(true);
+}
+
+function render(){
+ const q=Q[cur];
+ $("q-count").textContent=`Questão ${cur+1} de ${Q.length}`;
+ $("q-text").textContent=q.text;
+ $("q-opts").innerHTML="";
+ q.opts.forEach((o,k)=>{
+  const l=document.createElement("label");l.className="opt"+(ans[q.id]===o.i?" sel":"");
+  const r=document.createElement("input");r.type="radio";r.name="q";r.checked=ans[q.id]===o.i;
+  r.onchange=()=>{ans[q.id]=o.i;render()};
+  const t=document.createElement("span");t.textContent=String.fromCharCode(65+k)+") "+o.t;
+  l.append(r,t);$("q-opts").append(l);
+ });
+ $("b-prev").disabled=cur===0;$("b-nextq").disabled=cur===Q.length-1;
+ $("q-map").innerHTML="";
+ Q.forEach((x,i)=>{const b=document.createElement("button");b.textContent=i+1;
+  b.className=(ans[x.id]!==undefined?"done ":"")+(i===cur?"cur":"");
+  b.onclick=()=>{cur=i;render()};$("q-map").append(b)});
+}
+$("b-prev").onclick=()=>{if(cur>0){cur--;render()}};
+$("b-nextq").onclick=()=>{if(cur<Q.length-1){cur++;render()}};
+
+function violation(type){
+ if(!active||!attempt)return;
+ $("warn").classList.remove("hide");
+ db.rpc("log_violation",{p_attempt:attempt,p_type:type,p_details:{at:new Date().toISOString()}}).then(()=>{});
+}
+document.addEventListener("visibilitychange",()=>{if(document.hidden)violation("mudanca_separador")});
+window.addEventListener("blur",()=>{if(!document.hidden)violation("perda_foco")});
+
+$("b-submit").onclick=()=>{
+ const falta=Q.length-Object.keys(ans).length;
+ if(falta>0&&!confirm(`Tem ${falta} questão(ões) sem resposta. Submeter mesmo assim?`))return;
+ submit(false);
+};
+async function submit(auto){
+ if(done)return;
+ const b=$("b-submit");b.disabled=true;msg("e-exam","");
+ const arr=Object.entries(ans).map(([question_id,selected])=>({question_id,selected}));
+ const {data,error}=await db.rpc("submit_exam",{p_attempt:attempt,p_answers:arr});
+ if(error){b.disabled=false;msg("e-exam",clean(error.message)+" As suas respostas continuam guardadas neste ecrã. Toque em Submeter outra vez.");return}
+ done=true;active=false;clearInterval(tick);$("timer").classList.add("hide");
+ $("r-score").textContent=Number(data.score).toFixed(1).replace(".",",");
+ $("r-state").textContent=data.approved?"Aprovado":"Reprovado";
+ $("r-state").className=data.approved?"ok":"no";
+ $("r-detail").textContent=`${data.correct} respostas correctas em ${Q.length} questões. Nota mínima: 10 valores.`+(auto?" A prova foi submetida porque o tempo terminou.":"");
+ show("s-res");
+ $("s-res").insertAdjacentHTML("beforeend",'<div class="row"><button id="b-go">Continuar</button></div>');
+ $("b-go").onclick=()=>show("s-fb");
+}
+
+$("b-fb").onclick=async()=>{
+ const s=$("suggestion").value.trim(),n=$("needs").value.trim();
+ if(!s&&!n){msg("e-fb","Escreva pelo menos uma sugestão ou um tema de formação.");return}
+ $("b-fb").disabled=true;
+ const {error}=await db.rpc("save_feedback",{p_attempt:attempt,p_suggestion:s,p_needs:n});
+ if(error){$("b-fb").disabled=false;msg("e-fb",clean(error.message));return}
+ show("s-end");
+};
+</script>
+</body>
+</html>
