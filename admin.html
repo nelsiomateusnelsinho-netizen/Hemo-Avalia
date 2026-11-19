@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="pt-AO">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>HEMO-AVALIA · Administração</title>
+<style>
+:root{--g900:#14532d;--g700:#1f7a43;--g500:#3aa563;--g100:#e4f4ea;--bg:#f5faf7;--ink:#17261d;--mut:#5d6f64;--line:#cfe3d6;--bad:#b42318}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:var(--g900);color:#fff;padding:12px 16px;display:flex;justify-content:space-between;align-items:center}
+header b{font-size:17px}
+main{max-width:1100px;margin:0 auto;padding:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:12px}
+input,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;font:inherit;margin:6px 0}
+button{font:inherit;font-weight:600;border:0;border-radius:9px;padding:9px 12px;background:var(--g700);color:#fff;cursor:pointer;margin:2px}
+button.sec{background:var(--g100);color:var(--g900)}
+button.danger{background:#b42318;color:#fff}
+button:focus-visible,input:focus{outline:3px solid var(--g500)}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:10px}
+.tabs button{background:#fff;color:var(--ink);border:1px solid var(--line);white-space:nowrap}
+.tabs button.on{background:var(--g700);color:#fff}
+.wrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{text-align:left;padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{background:var(--g100);color:var(--g900);position:sticky;top:0}
+.ok{color:var(--g700);font-weight:700}.no{color:var(--bad);font-weight:700}
+.mut{color:var(--mut)}.hide{display:none}
+.bar{height:10px;background:var(--g100);border-radius:5px;min-width:90px}.bar i{display:block;height:10px;background:var(--g500);border-radius:5px}
+.bar.low i{background:var(--bad)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.answer{padding:10px;border:1px solid var(--line);border-radius:8px;margin:7px 0}
+.answer.correct{border-color:#3aa563;background:#e4f4ea}
+.answer.wrong{border-color:#b42318;background:#fff0ef}
+.small{font-size:13px}
+</style>
+</head>
+<body>
+<header><b>HEMO-AVALIA · Administração</b><button class="sec hide" id="b-out">Sair</button></header>
+<main>
+<div id="login" class="card" style="max-width:380px;margin:30px auto">
+<h2 style="margin-top:0;color:var(--g900)">Entrar</h2>
+<input id="email" type="email" placeholder="E-mail" autocomplete="username">
+<input id="pass" type="password" placeholder="Palavra-passe" autocomplete="current-password">
+<div id="e-login" class="no hide"></div>
+<button id="b-in" style="width:100%;margin-top:8px">Entrar</button>
+</div>
+<div id="app" class="hide">
+<div class="tabs" id="tabs"></div>
+<div class="card"><div class="row" id="tools"></div><div class="wrap" id="view"></div></div>
+</div>
+</main>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+const db=supabase.createClient("https://ltlhrgybrqrrsgfdleyp.supabase.co","sb_publishable_V7N4B62Po4MQYw0fpKUFjg_N3IemBEI");
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=d=>d?new Date(d).toLocaleString("pt-PT"):"";
+const nota=n=>n==null?"":Number(n).toFixed(1).replace(".",",");
+let D={},tab="pauta",csv=null;
+
+async function all(table,cols){
+ let out=[],from=0;
+ for(;;){
+  const {data,error}=await db.from(table).select(cols).range(from,from+999);
+  if(error)throw error;
+  out=out.concat(data||[]);if(!data||data.length<1000)break;from+=1000;
+ }
+ return out;
+}
+async function enter(){
+ const {data:{session}}=await db.auth.getSession();
+ if(!session){$("login").classList.remove("hide");$("app").classList.add("hide");$("b-out").classList.add("hide");return}
+ const {data:ok,error}=await db.rpc("is_admin");
+ if(error||!ok){await db.auth.signOut();$("e-login").textContent="Esta conta não tem permissão de administrador.";$("e-login").classList.remove("hide");$("login").classList.remove("hide");return}
+ $("login").classList.add("hide");$("app").classList.remove("hide");$("b-out").classList.remove("hide");
+ await load();
+}
+$("b-in").onclick=async()=>{
+ $("e-login").classList.add("hide");
+ const {error}=await db.auth.signInWithPassword({email:$("email").value.trim(),password:$("pass").value});
+ if(error){$("e-login").textContent="E-mail ou palavra-passe incorrectos.";$("e-login").classList.remove("hide");return}
+ await enter();
+};
+$("b-out").onclick=async()=>{await db.auth.signOut();location.reload()};
+
+async function load(){
+ $("view").innerHTML='<p class="mut">A carregar dados...</p>';
+ try{
+  const [c,a,v,f,q,r]=await Promise.all([
+   all("candidates","*"),
+   all("exam_attempts","id,candidate_id,status,score,started_at,submitted_at,duration_seconds,violation_count,answered_count,admin_review,expires_at,question_ids"),
+   all("exam_violations","*"),all("candidate_feedback","*"),
+   all("questions","id,category,active,question_text,options,correct_option,explanation"),
+   all("exam_answers","attempt_id,question_id,selected_option,answered_at")
+  ]);
+  D={c,a,v,f,q,r};
+  D.cm=Object.fromEntries(c.map(x=>[x.id,x]));D.am=Object.fromEntries(a.map(x=>[x.id,x]));D.qm=Object.fromEntries(q.map(x=>[x.id,x]));
+  tabs();draw();
+ }catch(e){$("view").innerHTML='<p class="no">Erro ao carregar: '+esc(e.message)+'</p>'}
+}
+const TABS={pauta:"Pauta geral",oco:"Ocorrências",sug:"Sugestões",est:"Estatística",cand:"Candidatos",gest:"Gestão de provas",qb:"Questões"};
+function tabs(){
+ $("tabs").innerHTML="";
+ for(const k in TABS){const b=document.createElement("button");b.textContent=TABS[k];b.className=k===tab?"on":"";b.onclick=()=>{tab=k;tabs();draw()};$("tabs").append(b)}
+}
+function table(head,rows){
+ return '<table><thead><tr>'+head.map(h=>'<th>'+esc(h)+'</th>').join('')+'</tr></thead><tbody>'+
+  (rows.length?rows.map(r=>'<tr>'+r.map(x=>'<td>'+x+'</td>').join('')+'</tr>').join(''):'<tr><td colspan="'+head.length+'" class="mut">Sem registos.</td></tr>')+'</tbody></table>';
+}
+function setCsv(name,head,rows){
+ csv={name,head,rows};
+ $("tools").innerHTML='<button id="b-csv">Exportar para Excel (CSV)</button><button class="sec" id="b-ref">Actualizar</button>';
+ $("b-csv").onclick=exportCsv;$("b-ref").onclick=load;
+}
+function exportCsv(){
+ const q=x=>'"'+String(x??"").replace(/"/g,'""')+'"';
+ const txt="\ufeff"+[csv.head,...csv.rows].map(r=>r.map(q).join(";")).join("\r\n");
+ const u=URL.createObjectURL(new Blob([txt],{type:"text/csv;charset=utf-8"}));
+ const a=document.createElement("a");a.href=u;a.download=csv.name+".csv";document.body.append(a);a.click();a.remove();URL.revokeObjectURL(u);
+}
+function draw(){
+ const {c,a,v,f,q,r}=D;
+ if(tab==="pauta"){
+  const rows=a.filter(x=>x.status!=="in_progress").sort((x,y)=>(y.score||0)-(x.score||0)).map(x=>{const k=D.cm[x.candidate_id]||{};
+   return [k.full_name,k.agent_number,k.category,nota(x.score),Number(x.score)>=10?"Aprovado":"Reprovado",Math.round((x.duration_seconds||0)/60),x.violation_count||0,fmt(x.submitted_at)]});
+  const head=["Nome","Nº agente","Categoria","Nota","Resultado","Duração (min)","Advertências","Submetida em"];
+  setCsv("pauta_geral",head,rows);
+  const ap=rows.filter(x=>x[4]==="Aprovado").length;
+  $("view").innerHTML='<p><b>'+rows.length+'</b> provas concluídas · <span class="ok">'+ap+' aprovados</span> · <span class="no">'+(rows.length-ap)+' reprovados</span> · '+(a.length-rows.length)+' em curso</p>'+table(head,rows.map(x=>x.map((y,i)=>i===4?'<span class="'+(y==="Aprovado"?"ok":"no")+'">'+y+'</span>':esc(y))));
+ }
+ if(tab==="oco"){
+  const rows=v.slice().sort((x,y)=>new Date(y.occurred_at)-new Date(x.occurred_at)).map(x=>{const at=D.am[x.attempt_id]||{},k=D.cm[at.candidate_id]||{};
+   return [k.full_name,k.agent_number,x.event_type,fmt(x.occurred_at),x.reviewed?"Sim":"Não",x.admin_note||""]});
+  const head=["Nome","Nº agente","Ocorrência","Data","Analisada","Nota do administrador"];
+  setCsv("ocorrencias",head,rows);$("view").innerHTML=table(head,rows.map(x=>x.map(esc)));
+ }
+ if(tab==="sug"){
+  const rows=f.map(x=>{const at=D.am[x.attempt_id]||{},k=D.cm[at.candidate_id]||{};return [k.full_name,k.agent_number,x.suggestion||"",x.training_needs||"",fmt(x.created_at)]});
+  const head=["Nome","Nº agente","Sugestões","Necessidades de formação","Data"];
+  setCsv("sugestoes",head,rows);$("view").innerHTML=table(head,rows.map(x=>x.map(esc)));
+ }
+ if(tab==="est"){
+  const by={};
+  r.forEach(x=>{const k=D.qm[x.question_id];if(!k)return;const g=by[k.category]||(by[k.category]={n:0,ok:0});g.n++;if(x.selected_option===k.correct_option)g.ok++});
+  const rows=Object.entries(by).map(([cat,g])=>[cat,g.n,g.ok,Math.round(g.ok/g.n*100)]).sort((x,y)=>x[3]-y[3]);
+  const head=["Área temática","Respostas","Correctas","% de acerto"];
+  setCsv("estatistica_por_area",head,rows);
+  $("view").innerHTML='<p class="mut">As áreas com menor % de acerto são as prioridades de formação.</p>'+table(head,rows.map(x=>[esc(x[0]),x[1],x[2],'<div class="bar'+(x[3]<50?" low":"")+'"><i style="width:'+x[3]+'%"></i></div>'+x[3]+'%']));
+ }
+ if(tab==="cand"){
+  const rows=c.map(x=>[x.full_name,x.agent_number,x.category,x.experience,x.education_level,x.training_area,x.training_institution,x.education_status,x.hemo_training,x.hemo_training_details||"",x.authorized_attempts||0]);
+  const head=["Nome","Nº agente","Categoria","Experiência","Nível","Área","Instituição de formação","Estado","Form. Hemoterapia","Detalhes","Novas tentativas autorizadas"];
+  setCsv("candidatos",head,rows);$("view").innerHTML=table(head,rows.map(x=>x.map(esc)));
+ }
+ if(tab==="gest"){
+  csv=null;
+  $("tools").innerHTML='<button class="sec" id="b-ref">Actualizar dados</button>';
+  $("b-ref").onclick=load;
+  const ordered=a.slice().sort((x,y)=>new Date(y.started_at)-new Date(x.started_at));
+  const rows=ordered.map(at=>{
+   const k=D.cm[at.candidate_id]||{};
+   const status=at.status==="in_progress"?"Em curso":at.status==="submitted"?"Submetida":at.status==="expired"?"Expirada":at.status==="cancelled"?"Anulada":at.status;
+   const actions='<button class="sec" data-action="answers" data-id="'+at.id+'">Ver respostas</button>'+
+    (at.status==="in_progress"||at.status==="submitted"||at.status==="expired"?'<button class="danger" data-action="cancel" data-id="'+at.id+'">Anular prova</button>':'');
+   return [esc(k.full_name||"—"),esc(k.agent_number||"—"),esc(k.category||"—"),esc(status),nota(at.score),fmt(at.started_at),fmt(at.submitted_at),esc(at.admin_review||""),actions];
+  });
+  $("view").innerHTML='<p><b>'+a.length+'</b> tentativas registadas. A anulação preserva o histórico e liberta uma nova tentativa, conforme a função administrativa configurada.</p>'+
+   table(["Candidato","Nº agente","Categoria","Estado","Nota","Início","Submissão","Observação administrativa","Acções"],rows);
+  $("view").querySelectorAll("[data-action]").forEach(b=>b.onclick=()=>b.dataset.action==="answers"?showAnswers(b.dataset.id):cancelAttempt(b.dataset.id));
+ }
+ if(tab==="qb"){
+  csv=null;$("tools").innerHTML='<button class="sec" id="b-ref">Actualizar</button>';$("b-ref").onclick=load;
+  const cnt={};q.forEach(x=>{if(x.active)cnt[x.category]=(cnt[x.category]||0)+1});
+  $("view").innerHTML='<p><b>'+q.filter(x=>x.active).length+'</b> questões activas · '+Object.entries(cnt).map(([k,n])=>esc(k)+': '+n).join(' · ')+'</p>'+
+   table(["Área","Questão","Estado"],q.map(x=>[esc(x.category),esc(x.question_text),'<button class="sec" data-id="'+x.id+'" data-a="'+x.active+'">'+(x.active?"Activa":"Inactiva")+'</button>']));
+  $("view").querySelectorAll("button[data-id]").forEach(b=>b.onclick=async()=>{
+   const {error}=await db.from("questions").update({active:b.dataset.a!=="true"}).eq("id",b.dataset.id);
+   if(error)alert(error.message);else load();
+  });
+ }
+}
+function showAnswers(attemptId){
+ const at=D.am[attemptId];if(!at)return;
+ const candidate=D.cm[at.candidate_id]||{};
+ const answers=D.r.filter(x=>x.attempt_id===attemptId);
+ const answerMap=Object.fromEntries(answers.map(x=>[x.question_id,x]));
+ const ids=Array.isArray(at.question_ids)?at.question_ids:[];
+ const questions=ids.map(id=>D.qm[id]).filter(Boolean);
+ $("tools").innerHTML='<button class="sec" id="b-back">Voltar à gestão</button>';
+ $("b-back").onclick=()=>draw();
+ let html='<h3>Respostas da prova</h3><p><b>'+esc(candidate.full_name||"")+'</b> · Nº agente: '+esc(candidate.agent_number||"")+' · Nota: <b>'+nota(at.score)+'</b> · Estado: '+esc(at.status)+'</p>';
+ if(!questions.length)html+='<p class="mut">Não foi possível localizar as questões desta tentativa.</p>';
+ questions.forEach((q,i)=>{
+  const ans=answerMap[q.id];
+  const opts=Array.isArray(q.options)?q.options:[];
+  const selected=ans?Number(ans.selected_option):null;
+  html+='<section class="answer"><b>Questão '+(i+1)+' · '+esc(q.category)+'</b><p>'+esc(q.question_text)+'</p>';
+  opts.forEach((opt,j)=>{
+   const correct=j===Number(q.correct_option),chosen=ans&&j===selected;
+   const cls=correct?"correct":(chosen?"wrong":"");
+   html+='<div class="answer '+cls+'">'+(chosen?'<b>Resposta seleccionada:</b> ':'')+(correct?'<b>Resposta correcta:</b> ':'')+esc(typeof opt==="string"?opt:JSON.stringify(opt))+'</div>';
+  });
+  if(!ans)html+='<p class="no small">Sem resposta registada.</p>';
+  if(q.explanation)html+='<p class="small"><b>Explicação:</b> '+esc(q.explanation)+'</p>';
+  html+='</section>';
+ });
+ $("view").innerHTML=html;
+}
+async function cancelAttempt(id){
+ const reason=prompt("Indica o motivo da anulação desta prova:");
+ if(reason===null)return;
+ if(!reason.trim()){alert("É obrigatório indicar o motivo.");return}
+ if(!confirm("Confirmas a anulação? O registo será preservado e será libertada uma nova tentativa."))return;
+ const {error}=await db.rpc("admin_cancel_attempt",{p_attempt_id:id,p_reason:reason.trim()});
+ if(error){alert("Não foi possível anular: "+error.message);return}
+ alert("Prova anulada. A autorização de nova tentativa foi libertada.");
+ await load();
+}
+async function authorizeCandidate(id){
+ const reason=prompt("Indica o motivo para autorizar uma nova tentativa:");
+ if(reason===null)return;
+ if(!reason.trim()){alert("É obrigatório indicar o motivo.");return}
+ const {error}=await db.rpc("admin_authorize_new_attempt",{p_candidate_id:id,p_reason:reason.trim()});
+ if(error){alert("Não foi possível autorizar: "+error.message);return}
+ alert("Nova tentativa autorizada.");
+ await load();
+}
+enter();
+</script>
+</body>
+</html>
