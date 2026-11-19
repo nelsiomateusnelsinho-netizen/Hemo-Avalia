@@ -152,7 +152,14 @@ function draw(){
  if(tab==="cand"){
   const rows=c.map(x=>[x.full_name,x.agent_number,x.category,x.experience,x.education_level,x.training_area,x.training_institution,x.education_status,x.hemo_training,x.hemo_training_details||"",x.authorized_attempts||0]);
   const head=["Nome","Nº agente","Categoria","Experiência","Nível","Área","Instituição de formação","Estado","Form. Hemoterapia","Detalhes","Novas tentativas autorizadas"];
-  setCsv("candidatos",head,rows);$("view").innerHTML=table(head,rows.map(x=>x.map(esc)));
+  setCsv("candidatos",head,rows);
+  $("view").innerHTML=table([...head,"Acção"],c.map(x=>[
+   esc(x.full_name),esc(x.agent_number),esc(x.category),esc(x.experience),esc(x.education_level),
+   esc(x.training_area),esc(x.training_institution),esc(x.education_status),esc(x.hemo_training),
+   esc(x.hemo_training_details||""),esc(x.authorized_attempts||0),
+   '<button data-authorize="'+x.id+'">Autorizar nova tentativa</button>'
+  ]));
+  $("view").querySelectorAll("button[data-authorize]").forEach(b=>b.onclick=()=>authorizeCandidate(b.dataset.authorize));
  }
  if(tab==="gest"){
   csv=null;
