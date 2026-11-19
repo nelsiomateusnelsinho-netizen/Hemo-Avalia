@@ -52,6 +52,8 @@ th{background:var(--g100);color:var(--g900);position:sticky;top:0}
 </div>
 </main>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.js"></script>
 <script>
 const db=supabase.createClient("https://ltlhrgybrqrrsgfdleyp.supabase.co","sb_publishable_V7N4B62Po4MQYw0fpKUFjg_N3IemBEI");
 const $=id=>document.getElementById(id);
@@ -111,14 +113,39 @@ function table(head,rows){
 }
 function setCsv(name,head,rows){
  csv={name,head,rows};
- $("tools").innerHTML='<button id="b-csv">Exportar para Excel (CSV)</button><button class="sec" id="b-ref">Actualizar</button>';
- $("b-csv").onclick=exportCsv;$("b-ref").onclick=load;
+ let html='<button id="b-xlsx">Exportar Excel (.xlsx)</button>';
+ if(tab==="sug") html+='<button id="b-word-sug" class="sec">Sugestões em Word (.docx)</button><button id="b-word-needs" class="sec">Necessidades de formação em Word (.docx)</button>';
+ html+='<button class="sec" id="b-ref">Actualizar</button>';
+ $("tools").innerHTML=html;
+ $("b-xlsx").onclick=exportXlsx;
+ if(tab==="sug"){
+  $("b-word-sug").onclick=()=>exportWordFeedback("suggestion");
+  $("b-word-needs").onclick=()=>exportWordFeedback("training_needs");
+ }
+ $("b-ref").onclick=load;
 }
-function exportCsv(){
- const q=x=>'"'+String(x??"").replace(/"/g,'""')+'"';
- const txt="\ufeff"+[csv.head,...csv.rows].map(r=>r.map(q).join(";")).join("\r\n");
- const u=URL.createObjectURL(new Blob([txt],{type:"text/csv;charset=utf-8"}));
- const a=document.createElement("a");a.href=u;a.download=csv.name+".csv";document.body.append(a);a.click();a.remove();URL.revokeObjectURL(u);
+function exportXlsx(){
+ if(!window.XLSX){alert("A biblioteca Excel não carregou. Verifica a ligação à Internet e tenta novamente.");return}
+ const ws=XLSX.utils.aoa_to_sheet([csv.head,...csv.rows]);
+ const wb=XLSX.utils.book_new();
+ XLSX.utils.book_append_sheet(wb,ws,(csv.name||"Dados").slice(0,31));
+ ws['!cols']=csv.head.map((h,i)=>({wch:Math.min(36,Math.max(14,String(h).length,...csv.rows.slice(0,80).map(r=>String(r[i]??"").length)))}));
+ XLSX.writeFile(wb,(csv.name||"relatorio")+".xlsx");
+}
+async function exportWordFeedback(field){
+ if(!window.docx){alert("A biblioteca Word não carregou. Verifica a ligação à Internet e tenta novamente.");return}
+ const {Document,Paragraph,TextRun,HeadingLevel,Packer}=docx;
+ const title=field==="suggestion"?"Sugestões dos participantes":"Necessidades de formação dos participantes";
+ const paragraphs=[new Paragraph({text:"HEMO-AVALIA",heading:HeadingLevel.TITLE}),new Paragraph({text:"Hospital Geral do Cuanza Norte – Mário Pinto de Andrade",heading:HeadingLevel.HEADING_2}),new Paragraph({text:title,heading:HeadingLevel.HEADING_1}),new Paragraph({text:"Serviço de Hemoterapia"})];
+ const items=D.f.map(x=>{const at=D.am[x.attempt_id]||{},k=D.cm[at.candidate_id]||{};return {name:k.full_name||"Não identificado",agent:k.agent_number||"—",value:(x[field]||"").trim(),date:fmt(x.created_at)}}).filter(x=>x.value);
+ if(!items.length) paragraphs.push(new Paragraph({text:"Não existem registos para este relatório."}));
+ items.forEach((x,i)=>{
+  paragraphs.push(new Paragraph({text:(i+1)+". "+x.name+" (Agente: "+x.agent+")",heading:HeadingLevel.HEADING_2}));
+  paragraphs.push(new Paragraph({children:[new TextRun({text:x.value})]}));
+  paragraphs.push(new Paragraph({children:[new TextRun({text:"Registado em: "+x.date,italics:true})]}));
+ });
+ const doc=new Document({sections:[{properties:{},children:paragraphs}]});
+ const blob=await Packer.toBlob(doc);const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download=(field==="suggestion"?"sugestoes_participantes":"necessidades_formacao")+".docx";document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1500);
 }
 function draw(){
  const {c,a,v,f,q,r}=D;
@@ -169,13 +196,13 @@ function draw(){
   const rows=ordered.map(at=>{
    const k=D.cm[at.candidate_id]||{};
    const status=at.status==="in_progress"?"Em curso":at.status==="submitted"?"Submetida":at.status==="expired"?"Expirada":at.status==="cancelled"?"Anulada":at.status;
-   const actions='<button class="sec" data-action="answers" data-id="'+at.id+'">Ver respostas</button>'+
+   const actions='<button class="sec" data-action="answers" data-id="'+at.id+'">Ver respostas</button><button data-action="pdf" data-id="'+at.id+'">Gerar PDF</button>'+
     (at.status==="in_progress"||at.status==="submitted"||at.status==="expired"?'<button class="danger" data-action="cancel" data-id="'+at.id+'">Anular prova</button>':'');
    return [esc(k.full_name||"—"),esc(k.agent_number||"—"),esc(k.category||"—"),esc(status),nota(at.score),fmt(at.started_at),fmt(at.submitted_at),esc(at.admin_review||""),actions];
   });
   $("view").innerHTML='<p><b>'+a.length+'</b> tentativas registadas. A anulação preserva o histórico e liberta uma nova tentativa, conforme a função administrativa configurada.</p>'+
    table(["Candidato","Nº agente","Categoria","Estado","Nota","Início","Submissão","Observação administrativa","Acções"],rows);
-  $("view").querySelectorAll("[data-action]").forEach(b=>b.onclick=()=>b.dataset.action==="answers"?showAnswers(b.dataset.id):cancelAttempt(b.dataset.id));
+  $("view").querySelectorAll("[data-action]").forEach(b=>b.onclick=()=>b.dataset.action==="answers"?showAnswers(b.dataset.id):b.dataset.action==="pdf"?generatePDF(b.dataset.id):cancelAttempt(b.dataset.id));
  }
  if(tab==="qb"){
   csv=null;$("tools").innerHTML='<button class="sec" id="b-ref">Actualizar</button>';$("b-ref").onclick=load;
@@ -214,6 +241,37 @@ function showAnswers(attemptId){
   html+='</section>';
  });
  $("view").innerHTML=html;
+}
+function generatePDF(attemptId){
+ const at=D.am[attemptId];if(!at){alert("Tentativa não encontrada.");return}
+ const candidate=D.cm[at.candidate_id]||{};
+ const answers=D.r.filter(x=>x.attempt_id===attemptId);
+ const answerMap=Object.fromEntries(answers.map(x=>[x.question_id,x]));
+ const ids=Array.isArray(at.question_ids)?at.question_ids:[];
+ const questions=ids.map(id=>D.qm[id]).filter(Boolean);
+ const status=at.status==="submitted"?"Submetida":at.status==="expired"?"Expirada":at.status==="cancelled"?"Anulada":at.status;
+ let body='';
+ questions.forEach((q,i)=>{
+  const ans=answerMap[q.id];
+  const selected=ans?Number(ans.selected_option):null;
+  const opts=Array.isArray(q.options)?q.options:[];
+  body+='<section class="question"><h3>Questão '+(i+1)+' · '+esc(q.category)+'</h3><p>'+esc(q.question_text)+'</p>';
+  opts.forEach((opt,j)=>{
+   const correct=j===Number(q.correct_option),chosen=ans&&j===selected;
+   const cls=correct?'correct':chosen?'wrong':'';
+   body+='<div class="option '+cls+'">'+(chosen?'Resposta seleccionada: ':'')+(correct?'Resposta correcta: ':'')+esc(typeof opt==='string'?opt:JSON.stringify(opt))+'</div>';
+  });
+  if(!ans)body+='<p class="missing">Sem resposta registada.</p>';
+  if(q.explanation)body+='<p><b>Explicação:</b> '+esc(q.explanation)+'</p>';
+  body+='</section>';
+ });
+ const w=window.open('','_blank');
+ if(!w){alert('O navegador bloqueou a janela do relatório. Permite janelas pop-up para este site e tenta novamente.');return}
+ w.document.write('<!DOCTYPE html><html lang="pt-AO"><head><meta charset="utf-8"><title>Relatório HEMO-AVALIA</title><style>body{font:14px/1.5 Arial,sans-serif;color:#17261d;margin:28px}h1{color:#14532d;font-size:22px}h2{color:#14532d;font-size:17px}.meta{border:1px solid #cfe3d6;padding:12px;border-radius:8px;margin:14px 0}.question{page-break-inside:avoid;border:1px solid #ddd;border-radius:7px;padding:12px;margin:12px 0}.question h3{font-size:15px;color:#14532d;margin:0 0 8px}.option{padding:7px;margin:5px 0;border:1px solid #ddd;border-radius:5px}.correct{background:#e4f4ea;border-color:#25834c;color:#14532d}.wrong{background:#fff0ef;border-color:#b42318;color:#b42318}.missing{color:#b42318;font-weight:bold}.foot{margin-top:24px;color:#666;font-size:11px}@media print{body{margin:15mm}button{display:none}}</style></head><body>');
+ w.document.write('<h1>HEMO-AVALIA — Relatório individual de avaliação</h1><h2>Hospital Geral do Cuanza Norte – Mário Pinto de Andrade · Serviço de Hemoterapia</h2>');
+ w.document.write('<div class="meta"><b>Nome:</b> '+esc(candidate.full_name||'—')+'<br><b>Nº de agente:</b> '+esc(candidate.agent_number||'—')+'<br><b>Categoria:</b> '+esc(candidate.category||'—')+'<br><b>Instituição:</b> '+esc(candidate.institution||'HGKNMPA')+'<br><b>Serviço:</b> '+esc(candidate.service||'Hemoterapia')+'<br><b>Data de início:</b> '+esc(fmt(at.started_at))+'<br><b>Data de submissão:</b> '+esc(fmt(at.submitted_at)||'—')+'<br><b>Duração registada:</b> '+Math.round((at.duration_seconds||0)/60)+' minutos<br><b>Estado:</b> '+esc(status)+'<br><b>Classificação:</b> '+esc(nota(at.score)||'—')+'/20<br><b>Questões respondidas:</b> '+(at.answered_count??answers.length)+' de '+ids.length+'<br><b>Ocorrências:</b> '+(at.violation_count||0)+'</div>');
+ w.document.write('<h2>Revisão das respostas</h2>'+body+'<p class="foot">Documento gerado pelo sistema HEMO-AVALIA. As respostas correctas estão assinaladas a verde e as respostas incorrectas seleccionadas a vermelho.</p><script>window.onload=function(){window.focus();window.print()}<\\/script></body></html>');
+ w.document.close();
 }
 async function cancelAttempt(id){
  const reason=prompt("Indica o motivo da anulação desta prova:");
