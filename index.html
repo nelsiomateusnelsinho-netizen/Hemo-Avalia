@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-AO">
 <head>
@@ -36,32 +37,53 @@ ul{padding-left:20px}
 </style>
 </head>
 <body>
-<header><div><b>HEMO-AVALIA</b><small>HGKNMPA · Serviço de Hemoterapia</small></div><div id="timer" class="hide">60:00</div></header>
+
+<header>
+ <div><b>HEMO-AVALIA</b><small>HGKNMPA · Serviço de Hemoterapia</small></div>
+ <div id="timer" class="hide">60:00</div>
+</header>
+
 <main>
 
 <section id="s-id" class="card">
 <h1>Identificação do candidato</h1>
 <p class="mut">Preencha os seus dados. Os resultados são identificados e vistos pela chefia do Serviço.</p>
+
 <label for="full_name">Nome completo</label><input id="full_name" autocomplete="name">
 <label for="agent_number">Número de agente</label><input id="agent_number" inputmode="text">
 <label for="category">Categoria profissional</label><input id="category" placeholder="Ex.: Técnico de Diagnóstico e Terapêutica">
 <label>Instituição</label><input value="HGKNMPA" disabled>
 <label>Serviço</label><input value="Hemoterapia" disabled>
+
 <label for="experience">Tempo de experiência profissional</label>
-<select id="experience"><option value="">Seleccione</option><option>Menos de 1 ano</option><option>1 a 3 anos</option><option>4 a 7 anos</option><option>8 a 15 anos</option><option>Mais de 15 anos</option></select>
+<select id="experience">
+<option value="">Seleccione</option><option>Menos de 1 ano</option><option>1 a 3 anos</option><option>4 a 7 anos</option><option>8 a 15 anos</option><option>Mais de 15 anos</option>
+</select>
+
 <label for="education_level">Nível académico</label>
-<select id="education_level"><option value="">Seleccione</option><option>Médio</option><option>Bacharelato</option><option>Licenciatura</option><option>Mestrado</option><option>Doutoramento</option></select>
+<select id="education_level">
+<option value="">Seleccione</option><option>Médio</option><option>Bacharelato</option><option>Licenciatura</option><option>Mestrado</option><option>Doutoramento</option>
+</select>
+
 <label for="training_area">Área de formação</label><input id="training_area">
 <label for="training_institution">Instituição de formação</label><input id="training_institution">
+
 <label for="education_status">Estado da formação académica</label>
-<select id="education_status"><option value="">Seleccione</option><option>Concluída</option><option>Em curso</option></select>
+<select id="education_status">
+<option value="">Seleccione</option><option>Concluída</option><option>Em curso</option>
+</select>
+
 <label for="hemo_training">Tem formação específica em Hemoterapia?</label>
-<select id="hemo_training"><option value="">Seleccione</option><option>Sim</option><option>Não</option></select>
+<select id="hemo_training">
+<option value="">Seleccione</option><option>Sim</option><option>Não</option>
+</select>
+
 <div id="hemo-extra" class="hide">
 <label for="h_hosp">Hospital</label><input id="h_hosp">
 <label for="h_tipo">Tipo de formação</label><input id="h_tipo">
 <label for="h_ano">Ano</label><input id="h_ano" inputmode="numeric" maxlength="4">
 </div>
+
 <div id="e-id" class="alert err hide"></div>
 <div class="row"><button id="b-next">Continuar</button></div>
 </section>
@@ -71,8 +93,9 @@ ul{padding-left:20px}
 <ul>
 <li>A prova tem <b>50 questões</b> de escolha múltipla, sorteadas do banco do Serviço.</li>
 <li>Tem <b>60 minutos</b>. O tempo é controlado pelo servidor e continua a contar se fechar a página.</li>
-<li>Só pode fazer a prova <b>uma vez</b>.</li>
+<li>Só pode fazer a prova <b>uma vez</b>, salvo autorização da chefia.</li>
 <li>Se mudar de separador ou sair da página, a ocorrência é registada e analisada depois pela chefia. A prova não é cancelada.</li>
+<li>As respostas são guardadas automaticamente.</li>
 <li>A nota (0 a 20) aparece logo após a submissão. A nota mínima é 10 valores.</li>
 </ul>
 <div id="e-inst" class="alert err hide"></div>
@@ -86,9 +109,13 @@ ul{padding-left:20px}
 <div id="q-opts"></div>
 <div class="row"><button class="sec" id="b-prev">Anterior</button><button id="b-nextq">Seguinte</button></div>
 </div>
-<div class="card"><div class="mut">Questões (as verdes já têm resposta)</div><div class="map" id="q-map"></div>
+
+<div class="card">
+<div class="mut">Questões (as verdes já têm resposta)</div>
+<div class="map" id="q-map"></div>
 <div id="e-exam" class="alert err hide"></div>
-<div class="row"><button id="b-submit">Submeter prova</button></div></div>
+<div class="row"><button id="b-submit">Submeter prova</button></div>
+</div>
 <div id="warn" class="alert warn hide">Saída da página registada. A prova continua, mas a ocorrência será analisada pela chefia.</div>
 </section>
 
@@ -109,113 +136,402 @@ ul{padding-left:20px}
 <div class="row"><button id="b-fb">Enviar sugestões</button></div>
 </section>
 
-<section id="s-end" class="card hide"><h1>Obrigado</h1><p>A sua participação foi registada. Já pode fechar esta página.</p></section>
+<section id="s-end" class="card hide">
+<h1>Obrigado</h1>
+<p>A sua participação foi registada. Já pode fechar esta página.</p>
+</section>
 
 </main>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <script>
 const SB_URL="https://ltlhrgybrqrrsgfdleyp.supabase.co";
 const SB_KEY="sb_publishable_V7N4B62Po4MQYw0fpKUFjg_N3IemBEI";
-const db=supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false}});
-const $=id=>document.getElementById(id);
-const show=id=>{["s-id","s-inst","s-exam","s-res","s-fb","s-end"].forEach(s=>$(s).classList.toggle("hide",s!==id));window.scrollTo(0,0)};
-const msg=(id,t)=>{const e=$(id);e.textContent=t;e.classList.toggle("hide",!t)};
-const clean=m=>(m||"Erro de ligação. Verifique a internet e tente outra vez.").replace(/^.*?exception:\s*/i,"");
-let P={},attempt=null,Q=[],ans={},cur=0,offset=0,expires=0,tick=null,active=false,done=false;
 
-$("hemo_training").onchange=e=>$("hemo-extra").classList.toggle("hide",e.target.value!=="Sim");
+const db=supabase.createClient(SB_URL,SB_KEY,{
+ auth:{persistSession:false}
+});
+
+const $=id=>document.getElementById(id);
+
+const show=id=>{
+ ["s-id","s-inst","s-exam","s-res","s-fb","s-end"].forEach(s=>{
+  $(s).classList.toggle("hide",s!==id);
+ });
+ window.scrollTo(0,0);
+};
+
+const msg=(id,t)=>{
+ const e=$(id);
+ e.textContent=t;
+ e.classList.toggle("hide",!t);
+};
+
+const clean=m=>(m||"Erro de ligação. Verifique a internet e tente outra vez.")
+ .replace(/^.*?exception:\s*/i,"");
+
+let P={};
+let attempt=null;
+let accessToken=null;
+let Q=[];
+let ans={};
+let cur=0;
+let offset=0;
+let expires=0;
+let tick=null;
+let active=false;
+let done=false;
+let submitting=false;
+
+let saveQueue=Promise.resolve();
+let saveFailures=new Set();
+
+$("hemo_training").onchange=e=>{
+ $("hemo-extra").classList.toggle("hide",e.target.value!=="Sim");
+};
 
 $("b-next").onclick=()=>{
- const need=["full_name","agent_number","category","experience","education_level","training_area","training_institution","education_status","hemo_training"];
- for(const k of need){if(!$(k).value.trim()){msg("e-id","Preencha todos os campos obrigatórios.");$(k).focus();return}}
- if($("hemo_training").value==="Sim"&&(!$("h_hosp").value.trim()||!$("h_tipo").value.trim()||!$("h_ano").value.trim())){msg("e-id","Indique hospital, tipo de formação e ano.");return}
+ const need=[
+  "full_name","agent_number","category","experience",
+  "education_level","training_area","training_institution",
+  "education_status","hemo_training"
+ ];
+
+ for(const k of need){
+  if(!$(k).value.trim()){
+   msg("e-id","Preencha todos os campos obrigatórios.");
+   $(k).focus();
+   return;
+  }
+ }
+
+ if($("hemo_training").value==="Sim"&&
+   (!$("h_hosp").value.trim()||
+    !$("h_tipo").value.trim()||
+    !$("h_ano").value.trim())){
+  msg("e-id","Indique hospital, tipo de formação e ano.");
+  return;
+ }
+
  msg("e-id","");
- P={};need.forEach(k=>P[k]=$(k).value.trim());
- P.institution="HGKNMPA";P.service="Hemoterapia";
- P.hemo_training_details=P.hemo_training==="Sim"?`Hospital: ${$("h_hosp").value.trim()}; Tipo: ${$("h_tipo").value.trim()}; Ano: ${$("h_ano").value.trim()}`:null;
+ P={};
+ need.forEach(k=>P[k]=$(k).value.trim());
+
+ P.institution="HGKNMPA";
+ P.service="Hemoterapia";
+
+ P.hemo_training_details=P.hemo_training==="Sim"
+  ?`Hospital: ${$("h_hosp").value.trim()}; Tipo: ${$("h_tipo").value.trim()}; Ano: ${$("h_ano").value.trim()}`
+  :null;
+
  show("s-inst");
 };
+
 $("b-back").onclick=()=>show("s-id");
 
 $("b-start").onclick=async()=>{
- const b=$("b-start");b.disabled=true;msg("e-inst","");
- const {data,error}=await db.rpc("start_exam",{p:P});
- b.disabled=false;
- if(error){msg("e-inst",clean(error.message));return}
- attempt=data.attempt_id;
- offset=new Date(data.server_now).getTime()-Date.now();
- expires=new Date(data.expires_at).getTime();
- Q=data.questions.map(q=>({id:q.id,text:q.text,opts:q.options.map((t,i)=>({t,i})).sort(()=>Math.random()-.5)}));
- cur=0;ans={};active=true;
- show("s-exam");$("timer").classList.remove("hide");
- render();clearInterval(tick);tick=setInterval(clock,500);clock();
+ const b=$("b-start");
+ b.disabled=true;
+ msg("e-inst","");
+
+ try{
+  const {data,error}=await db.rpc("start_exam",{p:P});
+
+  if(error)throw error;
+  if(!data||!data.attempt_id||!data.access_token){
+   throw new Error("O servidor não devolveu os dados de acesso à prova.");
+  }
+
+  attempt=data.attempt_id;
+  accessToken=data.access_token;
+
+  offset=new Date(data.server_now).getTime()-Date.now();
+  expires=new Date(data.expires_at).getTime();
+
+  Q=data.questions.map(q=>({
+   id:q.id,
+   text:q.text,
+   opts:q.options.map((t,i)=>({t,i})).sort(()=>Math.random()-.5)
+  }));
+
+  if(!Q.length)throw new Error("Não foram recebidas questões para a prova.");
+
+  const {data:saved,error:savedError}=await db.rpc(
+   "get_exam_answers",
+   {
+    p_attempt_id:attempt,
+    p_access_token:accessToken
+   }
+  );
+
+  if(savedError)throw savedError;
+
+  ans={};
+  (saved||[]).forEach(a=>{
+   if(a.selected_option!==null&&a.selected_option!==undefined){
+    ans[a.question_id]=Number(a.selected_option);
+   }
+  });
+
+  cur=0;
+  active=true;
+  done=false;
+  submitting=false;
+  saveFailures=new Set();
+  saveQueue=Promise.resolve();
+
+  show("s-exam");
+  $("timer").classList.remove("hide");
+
+  render();
+  clearInterval(tick);
+  tick=setInterval(clock,500);
+  clock();
+
+ }catch(error){
+  msg("e-inst",clean(error.message));
+ }finally{
+  b.disabled=false;
+ }
 };
 
 function clock(){
- const left=Math.max(0,expires-(Date.now()+offset)),m=Math.floor(left/60000),s=Math.floor(left%60000/1000);
- $("timer").textContent=String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+ if(!active||done)return;
+
+ const left=Math.max(0,expires-(Date.now()+offset));
+ const m=Math.floor(left/60000);
+ const s=Math.floor(left%60000/1000);
+
+ $("timer").textContent=
+  String(m).padStart(2,"0")+":"+String(s).padStart(2,"0");
+
  $("timer").classList.toggle("low",left<5*60000);
- if(left<=0&&active)submit(true);
+
+ if(left<=0)submit(true);
 }
 
 function render(){
  const q=Q[cur];
+ if(!q)return;
+
  $("q-count").textContent=`Questão ${cur+1} de ${Q.length}`;
  $("q-text").textContent=q.text;
  $("q-opts").innerHTML="";
+
  q.opts.forEach((o,k)=>{
-  const l=document.createElement("label");l.className="opt"+(ans[q.id]===o.i?" sel":"");
-  const r=document.createElement("input");r.type="radio";r.name="q";r.checked=ans[q.id]===o.i;
-  r.onchange=()=>{ans[q.id]=o.i;render()};
-  const t=document.createElement("span");t.textContent=String.fromCharCode(65+k)+") "+o.t;
-  l.append(r,t);$("q-opts").append(l);
+  const l=document.createElement("label");
+  l.className="opt"+(ans[q.id]===o.i?" sel":"");
+
+  const r=document.createElement("input");
+  r.type="radio";
+  r.name="q";
+  r.checked=ans[q.id]===o.i;
+
+  r.onchange=()=>{
+   ans[q.id]=o.i;
+   render();
+   persistAnswer(q.id,o.i);
+  };
+
+  const t=document.createElement("span");
+  t.textContent=String.fromCharCode(65+k)+") "+o.t;
+
+  l.append(r,t);
+  $("q-opts").append(l);
  });
- $("b-prev").disabled=cur===0;$("b-nextq").disabled=cur===Q.length-1;
+
+ $("b-prev").disabled=cur===0;
+ $("b-nextq").disabled=cur===Q.length-1;
+
  $("q-map").innerHTML="";
- Q.forEach((x,i)=>{const b=document.createElement("button");b.textContent=i+1;
+
+ Q.forEach((x,i)=>{
+  const b=document.createElement("button");
+  b.textContent=i+1;
   b.className=(ans[x.id]!==undefined?"done ":"")+(i===cur?"cur":"");
-  b.onclick=()=>{cur=i;render()};$("q-map").append(b)});
+
+  b.onclick=()=>{
+   cur=i;
+   render();
+  };
+
+  $("q-map").append(b);
+ });
 }
-$("b-prev").onclick=()=>{if(cur>0){cur--;render()}};
-$("b-nextq").onclick=()=>{if(cur<Q.length-1){cur++;render()}};
+
+function persistAnswer(questionId,selectedOption){
+ if(!active||!attempt||!accessToken)return;
+
+ saveFailures.add(questionId);
+ msg("e-exam","A guardar resposta...");
+
+ saveQueue=saveQueue.then(async()=>{
+  const {error}=await db.rpc("save_exam_answer",{
+   p_attempt_id:attempt,
+   p_access_token:accessToken,
+   p_question_id:questionId,
+   p_selected_option:selectedOption
+  });
+
+  if(error)throw error;
+
+  saveFailures.delete(questionId);
+
+  if(saveFailures.size===0){
+   msg("e-exam","");
+  }
+
+ }).catch(error=>{
+  msg("e-exam",
+   "Não foi possível guardar uma resposta. Verifique a internet e volte a seleccionar a resposta. "+clean(error.message)
+  );
+ });
+
+ return saveQueue;
+}
+
+$("b-prev").onclick=()=>{
+ if(cur>0){
+  cur--;
+  render();
+ }
+};
+
+$("b-nextq").onclick=()=>{
+ if(cur<Q.length-1){
+  cur++;
+  render();
+ }
+};
 
 function violation(type){
- if(!active||!attempt)return;
+ if(!active||!attempt||!accessToken)return;
+
  $("warn").classList.remove("hide");
- db.rpc("log_violation",{p_attempt:attempt,p_type:type,p_details:{at:new Date().toISOString()}}).then(()=>{});
+
+ db.rpc("log_violation",{
+  p_attempt:attempt,
+  p_type:type,
+  p_details:{at:new Date().toISOString()},
+  p_access_token:accessToken
+ }).then(({error})=>{
+  if(error)msg("e-exam","Não foi possível registar uma ocorrência: "+clean(error.message));
+ });
 }
-document.addEventListener("visibilitychange",()=>{if(document.hidden)violation("mudanca_separador")});
-window.addEventListener("blur",()=>{if(!document.hidden)violation("perda_foco")});
+
+document.addEventListener("visibilitychange",()=>{
+ if(document.hidden)violation("mudanca_separador");
+});
+
+window.addEventListener("blur",()=>{
+ if(!document.hidden)violation("perda_foco");
+});
 
 $("b-submit").onclick=()=>{
  const falta=Q.length-Object.keys(ans).length;
- if(falta>0&&!confirm(`Tem ${falta} questão(ões) sem resposta. Submeter mesmo assim?`))return;
+
+ if(falta>0&&
+  !confirm(`Tem ${falta} questão(ões) sem resposta. Submeter mesmo assim?`)){
+  return;
+ }
+
  submit(false);
 };
+
 async function submit(auto){
- if(done)return;
- const b=$("b-submit");b.disabled=true;msg("e-exam","");
- const arr=Object.entries(ans).map(([question_id,selected])=>({question_id,selected}));
- const {data,error}=await db.rpc("submit_exam",{p_attempt:attempt,p_answers:arr});
- if(error){b.disabled=false;msg("e-exam",clean(error.message)+" As suas respostas continuam guardadas neste ecrã. Toque em Submeter outra vez.");return}
- done=true;active=false;clearInterval(tick);$("timer").classList.add("hide");
- $("r-score").textContent=Number(data.score).toFixed(1).replace(".",",");
- $("r-state").textContent=data.approved?"Aprovado":"Reprovado";
- $("r-state").className=data.approved?"ok":"no";
- $("r-detail").textContent=`${data.correct} respostas correctas em ${Q.length} questões. Nota mínima: 10 valores.`+(auto?" A prova foi submetida porque o tempo terminou.":"");
- show("s-res");
- $("s-res").insertAdjacentHTML("beforeend",'<div class="row"><button id="b-go">Continuar</button></div>');
- $("b-go").onclick=()=>show("s-fb");
+ if(done||submitting||!active)return;
+
+ submitting=true;
+
+ const b=$("b-submit");
+ b.disabled=true;
+ msg("e-exam","A guardar as últimas respostas antes da submissão...");
+
+ try{
+  await saveQueue;
+
+  if(saveFailures.size>0){
+   throw new Error("Existem respostas que ainda não foram guardadas. Verifique a ligação e tente novamente.");
+  }
+
+  const arr=Object.entries(ans).map(([question_id,selected])=>({
+   question_id,
+   selected
+  }));
+
+  const {data,error}=await db.rpc("submit_exam",{
+   p_attempt:attempt,
+   p_answers:arr,
+   p_access_token:accessToken
+  });
+
+  if(error)throw error;
+
+  done=true;
+  active=false;
+  submitting=false;
+
+  clearInterval(tick);
+  $("timer").classList.add("hide");
+
+  $("r-score").textContent=Number(data.score).toFixed(1).replace(".",",");
+  $("r-state").textContent=data.approved?"Aprovado":"Reprovado";
+  $("r-state").className=data.approved?"ok":"no";
+
+  $("r-detail").textContent=
+   `${data.correct} respostas correctas em ${Q.length} questões. Nota mínima: 10 valores.`+
+   (auto?" A prova foi submetida porque o tempo terminou.":"");
+
+  show("s-res");
+
+  $("s-res").insertAdjacentHTML(
+   "beforeend",
+   '<div class="row"><button id="b-go">Continuar</button></div>'
+  );
+
+  $("b-go").onclick=()=>show("s-fb");
+
+ }catch(error){
+  submitting=false;
+  b.disabled=false;
+  msg("e-exam",clean(error.message)+" Pode tentar submeter novamente.");
+ }
 }
 
 $("b-fb").onclick=async()=>{
- const s=$("suggestion").value.trim(),n=$("needs").value.trim();
- if(!s&&!n){msg("e-fb","Escreva pelo menos uma sugestão ou um tema de formação.");return}
- $("b-fb").disabled=true;
- const {error}=await db.rpc("save_feedback",{p_attempt:attempt,p_suggestion:s,p_needs:n});
- if(error){$("b-fb").disabled=false;msg("e-fb",clean(error.message));return}
+ const s=$("suggestion").value.trim();
+ const n=$("needs").value.trim();
+
+ if(!s&&!n){
+  msg("e-fb","Escreva pelo menos uma sugestão ou um tema de formação.");
+  return;
+ }
+
+ if(!attempt||!accessToken){
+  msg("e-fb","Não foi possível validar o acesso à sua tentativa.");
+  return;
+ }
+
+ const b=$("b-fb");
+ b.disabled=true;
+ msg("e-fb","");
+
+ const {error}=await db.rpc("save_feedback",{
+  p_attempt:attempt,
+  p_suggestion:s,
+  p_needs:n,
+  p_access_token:accessToken
+ });
+
+ if(error){
+  b.disabled=false;
+  msg("e-fb",clean(error.message));
+  return;
+ }
+
  show("s-end");
 };
 </script>
 </body>
-</html>
+ </html>
+ 
