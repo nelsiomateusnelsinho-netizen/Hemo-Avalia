@@ -1,484 +1,181 @@
 <!DOCTYPE html>
-<html lang="pt-AO">
+<html lang="pt">
 <head>
-<meta charset="utf-8">
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>HEMO-AVALIA</title>
+<title>HEMO-AVALIA | Avaliação em Hemoterapia</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-:root{--g900:#14532d;--g700:#1f7a43;--g500:#3aa563;--g100:#e4f4ea;--bg:#f5faf7;--ink:#17261d;--mut:#5d6f64;--line:#cfe3d6;--warn:#b45309;--bad:#b42318}
-*{box-sizing:border-box}
-body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-header{background:var(--g900);color:#fff;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
-header b{font-size:18px;letter-spacing:.3px}header small{display:block;opacity:.8;font-size:12px}
-#timer{font:600 20px ui-monospace,Menlo,monospace;background:var(--g700);padding:4px 10px;border-radius:8px;white-space:nowrap}
-#timer.low{background:var(--bad)}
-main{max-width:640px;margin:0 auto;padding:16px}
-.card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px}
-h1{font-size:22px;margin:4px 0 8px;color:var(--g900)}h2{font-size:18px;margin:0 0 10px;color:var(--g900)}
-label{display:block;font-weight:600;margin:12px 0 4px;font-size:14px}
-input,select,textarea{width:100%;padding:11px;border:1px solid var(--line);border-radius:8px;font:inherit;background:#fff}
-input:focus,select:focus,textarea:focus,button:focus-visible{outline:3px solid var(--g500);outline-offset:1px}
-button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:12px 18px;background:var(--g700);color:#fff;cursor:pointer}
-button.sec{background:var(--g100);color:var(--g900)}button:disabled{opacity:.5;cursor:not-allowed}
-.row{display:flex;gap:10px;margin-top:14px}.row>*{flex:1}
-.opt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:10px;padding:12px;margin:8px 0;cursor:pointer;background:#fff}
-.opt.sel{border-color:var(--g700);background:var(--g100)}
-.opt input{width:auto;margin-top:4px}
-.alert{padding:10px 12px;border-radius:8px;margin:10px 0;font-size:14px}
-.err{background:#fde8e6;color:var(--bad)}.warn{background:#fef3c7;color:var(--warn)}
-.big{font-size:56px;font-weight:700;margin:0;color:var(--g900)}
-.ok{color:var(--g700)}.no{color:var(--bad)}
-.hide{display:none}.mut{color:var(--mut);font-size:14px}
-ul{padding-left:20px}
-.progress{height:8px;background:var(--g100);border-radius:99px;overflow:hidden;margin:10px 0}
-.progress>div{height:100%;background:var(--g500);width:0;transition:width .2s}
-.small-note{font-size:13px;color:var(--mut)}
-@media(max-width:420px){header{padding:11px}#timer{font-size:17px}main{padding:10px}.card{padding:13px}.row{gap:7px}.row button{padding:11px 8px}}
+:root{--green:#16794b;--dark:#123d2c;--pale:#eaf5ef;--line:#d8e5dc;--red:#b42318}
+*{box-sizing:border-box}body{margin:0;background:#f4f7f5;color:#20332a;font:16px Arial,sans-serif}
+header{background:var(--dark);color:white;padding:20px 16px;text-align:center}header h1{margin:0;font-size:25px;letter-spacing:1px}header p{margin:7px 0 0;color:#d5e9dc}
+main{max-width:850px;margin:22px auto;padding:0 14px}.panel{background:white;border:1px solid var(--line);border-radius:14px;padding:22px;margin-bottom:16px;box-shadow:0 3px 12px #163b2810}
+h2{margin:0 0 16px;color:var(--dark);font-size:21px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:13px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}label{font-size:13px;font-weight:bold;color:#345344}input,select,textarea{width:100%;padding:12px;border:1px solid #cbd9d0;border-radius:8px;font:inherit;background:white}textarea{min-height:90px;resize:vertical}
+button{border:0;border-radius:9px;padding:13px 19px;background:var(--green);color:white;font-weight:bold;font-size:15px;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#e8f2ec;color:var(--dark)}.danger{background:#a52a2a}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.hint{color:#607568;font-size:13px;line-height:1.5}.error{color:var(--red);font-weight:bold;margin-top:12px}.hidden{display:none!important}.topline{display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap}.timer{font-weight:bold;color:var(--green);font-size:20px;font-variant-numeric:tabular-nums}.progress{height:8px;background:#e6eee9;border-radius:20px;overflow:hidden;margin:15px 0}.progress div{height:100%;background:var(--green);width:0}.option{display:flex;gap:11px;align-items:flex-start;border:1px solid var(--line);padding:13px;border-radius:9px;margin:10px 0;cursor:pointer}.option:has(input:checked){border-color:var(--green);background:var(--pale)}.option input{width:auto;margin-top:3px}.question{font-size:18px;line-height:1.5;font-weight:bold;margin:18px 0}.status{font-size:13px;color:#64766b}.result{font-size:28px;color:var(--green);font-weight:bold}
+@media(max-width:600px){.grid{grid-template-columns:1fr}.panel{padding:17px}header h1{font-size:21px}}
 </style>
 </head>
 <body>
-<header>
- <div><b>HEMO-AVALIA</b><small>HGKNMPA · Serviço de Hemoterapia</small></div>
- <div id="timer" class="hide">30:00</div>
-</header>
-
+<header><h1>HEMO-AVALIA</h1><p>Plataforma de Avaliação de Conhecimentos em Hemoterapia</p></header>
 <main>
-<section id="s-id" class="card">
-<h1>Identificação do candidato</h1>
-<p class="mut">Preencha os seus dados. Os resultados são identificados e vistos pela chefia do Serviço.</p>
-<label for="full_name">Nome completo</label><input id="full_name" autocomplete="name">
-<label for="agent_number">Número de agente</label><input id="agent_number" inputmode="text">
-<label for="category">Categoria profissional</label><input id="category" placeholder="Ex.: Técnico de Diagnóstico e Terapêutica">
-<label>Instituição</label><input value="HGKNMPA" disabled>
-<label>Serviço</label><input value="Hemoterapia" disabled>
-<label for="experience">Tempo de experiência profissional</label>
-<select id="experience"><option value="">Seleccione</option><option>Menos de 1 ano</option><option>1 a 3 anos</option><option>4 a 7 anos</option><option>8 a 15 anos</option><option>Mais de 15 anos</option></select>
-<label for="education_level">Nível académico</label>
-<select id="education_level"><option value="">Seleccione</option><option>Médio</option><option>Bacharelato</option><option>Licenciatura</option><option>Mestrado</option><option>Doutoramento</option></select>
-<label for="training_area">Área de formação</label><input id="training_area">
-<label for="training_institution">Instituição de formação</label><input id="training_institution">
-<label for="education_status">Estado da formação académica</label>
-<select id="education_status"><option value="">Seleccione</option><option>Concluída</option><option>Em curso</option></select>
-<label for="hemo_training">Tem formação específica em Hemoterapia?</label>
-<select id="hemo_training"><option value="">Seleccione</option><option>Sim</option><option>Não</option></select>
-<div id="hemo-extra" class="hide">
-<label for="h_hosp">Hospital</label><input id="h_hosp">
-<label for="h_tipo">Tipo de formação</label><input id="h_tipo">
-<label for="h_ano">Ano</label><input id="h_ano" inputmode="numeric" maxlength="4">
+<section id="registration" class="panel">
+<h2>Identificação do candidato</h2>
+<p class="hint">Preencha os dados para iniciar a avaliação. Os campos assinalados com * são obrigatórios.</p>
+<form id="candidateForm">
+<div class="grid">
+<div class="field"><label for="full_name">Nome completo *</label><input id="full_name" required autocomplete="name"></div>
+<div class="field"><label for="agent_number">Número de agente *</label><input id="agent_number" required></div>
+<div class="field"><label for="category">Categoria profissional *</label><select id="category" required><option value="">Seleccione</option><option>Técnico de Laboratório</option><option>Técnico Superior de Diagnóstico e Terapêutica</option><option>Médico</option><option>Enfermeiro</option><option>Outro</option></select></div>
+<div class="field"><label for="experience">Tempo de experiência</label><select id="experience"><option value="">Seleccione</option><option>Menos de 1 ano</option><option>1–3 anos</option><option>4–6 anos</option><option>7–10 anos</option><option>Mais de 10 anos</option></select></div>
+<div class="field"><label for="education_level">Nível académico</label><select id="education_level"><option value="">Seleccione</option><option>Ensino Médio</option><option>Bacharelato</option><option>Licenciatura</option><option>Pós-graduação</option><option>Mestrado</option><option>Doutoramento</option></select></div>
+<div class="field"><label for="education_status">Estado da formação académica</label><select id="education_status"><option value="">Seleccione</option><option>Concluída</option><option>A frequentar</option><option>Concluída, aguarda diploma</option><option>Interrompida</option></select></div>
+<div class="field"><label for="training_area">Área de formação</label><input id="training_area"></div>
+<div class="field"><label for="training_institution">Instituição de formação</label><input id="training_institution"></div>
+<div class="field"><label for="hemo_training">Formação específica em Hemoterapia?</label><select id="hemo_training"><option value="">Seleccione</option><option>Sim</option><option>Não</option></select></div>
+<div class="field"><label for="hemo_training_details">Se sim, indique tipo, hospital e ano</label><input id="hemo_training_details"></div>
 </div>
-<div id="e-id" class="alert err hide"></div>
-<div class="row"><button id="b-next">Continuar</button></div>
+<p class="hint">Instituição: Hospital Geral do Cuanza Norte – Mário Pinto de Andrade (HGKNMPA) · Serviço: Hemoterapia.</p>
+<div class="actions"><button type="submit" id="startBtn">Iniciar avaliação</button></div><div id="formError" class="error" role="alert"></div>
+</form>
 </section>
 
-<section id="s-inst" class="card hide">
-<h1>Instruções da prova</h1>
-<ul>
-<li>A prova contém <b>50 questões</b> de escolha múltipla, seleccionadas do banco do Serviço.</li>
-<li>A duração total é de <b>30 minutos</b>.</li>
-<li>Cada pergunta dispõe de <b>36 segundos</b>. No fim desse tempo, a plataforma avança automaticamente.</li>
-<li>Não é possível voltar às perguntas anteriores nem escolher livremente a ordem.</li>
-<li>As respostas são guardadas automaticamente no servidor.</li>
-<li>Se mudar de separador ou sair da página, a ocorrência será registada e analisada pela chefia. A prova não é cancelada automaticamente.</li>
-<li>A nota (0 a 20) aparece após a submissão. A nota mínima é 10 valores.</li>
-</ul>
-<p class="small-note">Mantenha a ligação à internet durante a prova. O tempo é controlado pelo servidor.</p>
-<div id="e-inst" class="alert err hide"></div>
-<div class="row"><button class="sec" id="b-back">Voltar</button><button id="b-start">Iniciar prova</button></div>
+<section id="exam" class="panel hidden">
+<div class="topline"><div><strong id="candidateLabel"></strong><div class="status">Avaliação em curso · HGKNMPA / Hemoterapia</div></div><div class="timer" id="globalTimer">--:--</div></div>
+<div class="progress"><div id="progressBar"></div></div>
+<div class="topline"><strong id="counter">Pergunta 1 de 50</strong><span class="status" id="questionTimer">Tempo da pergunta: 36 s</span></div>
+<div id="questionText" class="question"></div><div id="options"></div>
+<div class="actions"><button id="saveNextBtn" type="button">Guardar e continuar</button></div><div id="examError" class="error" role="alert"></div>
+<p class="hint">A avaliação avança automaticamente após 36 segundos por pergunta. Não feche esta página durante a prova.</p>
 </section>
 
-<section id="s-exam" class="hide">
-<div class="card">
-<div class="mut" id="q-count">A preparar pergunta…</div>
-<div class="progress"><div id="q-progress"></div></div>
-<div class="row" style="align-items:center;margin-top:4px">
- <div class="mut">Tempo desta pergunta</div>
- <strong id="q-clock" style="font:700 20px ui-monospace,monospace;color:var(--g900)">36 s</strong>
-</div>
-<h2 id="q-text" style="margin-top:12px"></h2>
-<div id="q-opts"></div>
-<div id="e-exam" class="alert err hide"></div>
-<p class="small-note">A passagem para a próxima pergunta é automática. Não feche esta página.</p>
-</div>
-<div id="warn" class="alert warn hide">Saída da página ou mudança de separador registada. A prova continua e a ocorrência será analisada pela chefia.</div>
+<section id="feedback" class="panel hidden">
+<h2>Avaliação concluída</h2>
+<p id="resultLine"></p>
+<p class="hint">Antes de terminar, deixe a sua sugestão e indique as necessidades de capacitação identificadas.</p>
+<div class="field"><label for="suggestion">Sugestões para melhorar o Serviço de Hemoterapia</label><textarea id="suggestion"></textarea></div>
+<div class="field" style="margin-top:12px"><label for="needs">Áreas em que necessita de capacitação *</label><textarea id="needs" required></textarea></div>
+<div class="actions"><button id="feedbackBtn" type="button">Enviar feedback e concluir</button><button id="pdfBtn" class="secondary" type="button">Descarregar meu PDF</button></div>
+<div id="feedbackError" class="error" role="alert"></div>
 </section>
-
-<section id="s-res" class="card hide" style="text-align:center">
-<h1>Prova concluída</h1>
-<p class="big" id="r-score">0</p>
-<p class="mut">valores (0 a 20)</p>
-<p id="r-state" style="font-weight:700;font-size:18px"></p>
-<p class="mut" id="r-detail"></p>
-<div id="pdf-error" class="alert err hide"></div>
-<div class="row"><button id="b-pdf">Gerar PDF individual</button></div>
-<p class="small-note">O comprovativo é gerado depois da confirmação da submissão pelo servidor.</p>
-</section>
-
-<section id="s-fb" class="card hide">
-<h2>Sugestões ao Serviço</h2>
-<p class="mut">A sua opinião ajuda a planear formações. Indique também as suas necessidades de capacitação.</p>
-<label for="suggestion">Sugestões para melhorar o Serviço</label><textarea id="suggestion" rows="4"></textarea>
-<label for="needs">Temas em que gostaria de ter formação</label><textarea id="needs" rows="4"></textarea>
-<div id="e-fb" class="alert err hide"></div>
-<div class="row"><button id="b-fb">Enviar sugestões</button></div>
-</section>
-
-<section id="s-end" class="card hide">
-<h1>Obrigado</h1><p>A sua participação foi registada. Já pode fechar esta página.</p>
-</section>
+<section id="done" class="panel hidden"><h2>Obrigado pela participação.</h2><p>O seu feedback foi registado. Guarde o PDF individual da avaliação.</p><button id="finalPdfBtn" type="button">Descarregar PDF</button></section>
 </main>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script>
-"use strict";
-const SB_URL="https://ltlhrgybrqrrsgfdleyp.supabase.co";
-const SB_KEY="sb_publishable_V7N4B62Po4MQYw0fpKUFjg_N3IemBEI";
-// A navegação do formulário não depende do carregamento do Supabase.
-let db=null;
-let supabaseInitError=null;
-try{
- if(window.supabase && typeof window.supabase.createClient==="function"){
-  db=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:false}});
- }else{
-  supabaseInitError=new Error("A biblioteca de ligação ao servidor não carregou.");
- }
-}catch(e){supabaseInitError=e;}
-function requireDb(){
- if(!db)throw new Error("Não foi possível ligar ao servidor Supabase. Verifique a internet e actualize a página. "+(supabaseInitError?.message||""));
- return db;
-}
+(() => {
+'use strict';
+const SUPABASE_URL='https://ltlhrgybrqrrsgfdleyp.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_V7N4B62Po4MQYw0fpKUFjg_N3IemBEI';
+const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const $=id=>document.getElementById(id);
-const SECTIONS=["s-id","s-inst","s-exam","s-res","s-fb","s-end"];
-const SESSION_KEY="hemo_avalia_active_attempt_v2";
-const show=id=>{SECTIONS.forEach(s=>$(s).classList.toggle("hide",s!==id));window.scrollTo(0,0)};
-const msg=(id,t)=>{const e=$(id);e.textContent=t;e.classList.toggle("hide",!t)};
-const clean=m=>(m||"Erro de ligação. Verifique a internet e tente outra vez.").replace(/^.*?exception:\s*/i,"");
-
-let P={},attempt=null,accessToken=null,answers={},currentQuestion=null;
-let totalQuestions=50,serverOffset=0,expiresAt=0,questionDeadline=0;
-let clockTimer=null,active=false,done=false,submitting=false,advancing=false;
-let saveQueue=Promise.resolve(),saveErrors=new Set(),resultData=null;
-let examStartedAt=null;
-
-function readSavedSession(){
- const keys=[SESSION_KEY,"hemo_avalia_active_attempt","hemo_avalia_active_attempt_v2"];
- for(const store of [localStorage,sessionStorage]){
-  for(const key of keys){
-   try{const raw=store.getItem(key);if(raw){const value=JSON.parse(raw);if(value&&value.attempt&&value.accessToken)return value;}}catch(_){}
-  }
- }
- return null;
-}
-function saveSession(){
- if(!attempt||!accessToken)return;
- const value=JSON.stringify({attempt,accessToken,P,expiresAt,serverOffset,totalQuestions,examStartedAt});
- try{localStorage.setItem(SESSION_KEY,value);sessionStorage.setItem(SESSION_KEY,value);}
- catch(_){try{sessionStorage.setItem(SESSION_KEY,value);}catch(__){msg("e-exam","Não foi possível guardar a sessão neste navegador. Não feche a página e contacte a chefia.");}}
-}
-function clearSavedSession(){
- for(const store of [localStorage,sessionStorage]){
-  try{store.removeItem(SESSION_KEY);store.removeItem("hemo_avalia_active_attempt");store.removeItem("hemo_avalia_active_attempt_v2");}catch(_){}
- }
-}
-
-async function restoreSession(){
- let saved=readSavedSession();
- if(!saved||!saved.attempt||!saved.accessToken)return;
- attempt=saved.attempt;accessToken=saved.accessToken;P=saved.P||{};
- expiresAt=Number(saved.expiresAt)||0;serverOffset=Number(saved.serverOffset)||0;
- totalQuestions=Number(saved.totalQuestions)||50;examStartedAt=saved.examStartedAt||null;
- active=true;done=false;submitting=false;advancing=false;saveErrors.clear();saveQueue=Promise.resolve();
- // Recupera os dados de identificação para o comprovativo PDF.
- const fields=["full_name","agent_number","category","experience","education_level","training_area","training_institution","education_status","hemo_training"];
- fields.forEach(k=>{if(P[k]!==undefined&&$(k))$(k).value=P[k];});
- if(P.hemo_training==="Sim"&&P.hemo_training_details){$("hemo-extra").classList.remove("hide");}
- try{
-  const {data:savedAnswers,error}=await requireDb().rpc("get_exam_answers",{p_attempt_id:attempt,p_access_token:accessToken});
-  if(error)throw error;
-  answers={};(savedAnswers||[]).forEach(a=>{if(a.selected_option!==null&&a.selected_option!==undefined)answers[a.question_id]=Number(a.selected_option);});
-  show("s-exam");$("timer").classList.remove("hide");
-  await loadCurrentQuestion();
-  if(active){clearInterval(clockTimer);clockTimer=setInterval(updateClocks,200);updateClocks();}
- }catch(error){active=false;show("s-id");msg("e-id","Não foi possível recuperar a prova automaticamente. Volte a introduzir o mesmo número de agente e contacte a chefia antes de iniciar outra tentativa. "+clean(error.message));}
-}
-
-$("hemo_training").onchange=e=>$("hemo-extra").classList.toggle("hide",e.target.value!=="Sim");
-
-$("b-next").addEventListener("click",()=>{
- const required=["full_name","agent_number","category","experience","education_level","training_area","training_institution","education_status","hemo_training"];
- for(const k of required){if(!$(k).value.trim()){msg("e-id","Preencha todos os campos obrigatórios.");$(k).focus();return;}}
- if($("hemo_training").value==="Sim"&&(!$("h_hosp").value.trim()||!$("h_tipo").value.trim()||!$("h_ano").value.trim())){msg("e-id","Indique hospital, tipo de formação e ano.");return;}
- P={};required.forEach(k=>P[k]=$(k).value.trim());
- P.institution="HGKNMPA";P.service="Hemoterapia";
- P.hemo_training_details=P.hemo_training==="Sim"?`Hospital: ${$("h_hosp").value.trim()}; Tipo: ${$("h_tipo").value.trim()}; Ano: ${$("h_ano").value.trim()}`:null;
- msg("e-id","");show("s-inst");
+let attemptId=null, accessToken=null, current=null, candidate={}, answers={}, result=null, deadline=null, globalTick=null, questionTick=null, questionSeconds=36, submitting=false;
+const show=(id)=>$(id).classList.remove('hidden'), hide=(id)=>$(id).classList.add('hidden');
+const err=(id,msg)=>$(id).textContent=msg||'';
+const rpc=async(name,args)=>{const {data,error}=await db.rpc(name,args);if(error)throw error;return data};
+const formData=()=>({
+ full_name:$('full_name').value.trim(),agent_number:$('agent_number').value.trim(),category:$('category').value,
+ institution:'HGKNMPA',service:'Hemoterapia',experience:$('experience').value,
+ education_level:$('education_level').value,education_status:$('education_status').value,
+ training_area:$('training_area').value.trim(),training_institution:$('training_institution').value.trim(),
+ hemo_training:$('hemo_training').value,hemo_training_details:$('hemo_training_details').value.trim()
 });
-$("b-back").onclick=()=>show("s-id");
-
-$("b-start").onclick=async()=>{
- const b=$("b-start");b.disabled=true;msg("e-inst","");
+$('candidateForm').addEventListener('submit',async e=>{
+ e.preventDefault();err('formError','');
+ if(!$('candidateForm').reportValidity())return;
+ $('startBtn').disabled=true;$('startBtn').textContent='A iniciar…';
+ candidate=formData();
  try{
-  const {data,error}=await requireDb().rpc("start_exam",{p:P});
-  if(error)throw error;
-  if(!data||!data.attempt_id||!data.access_token)throw new Error("O servidor não devolveu os dados de acesso à prova.");
-  attempt=data.attempt_id;accessToken=data.access_token;
-  serverOffset=data.server_now?new Date(data.server_now).getTime()-Date.now():0;
-  expiresAt=data.expires_at?new Date(data.expires_at).getTime():Date.now()+1800000;
-  examStartedAt=data.server_now||new Date().toISOString();
-  saveSession();
-  totalQuestions=Number(data.total||data.questions_per_exam||(Array.isArray(data.questions)?data.questions.length:50))||50;
-  const {data:saved,error:savedError}=await requireDb().rpc("get_exam_answers",{p_attempt_id:attempt,p_access_token:accessToken});
-  if(savedError)throw savedError;
-  answers={};
-  (saved||[]).forEach(a=>{if(a.selected_option!==null&&a.selected_option!==undefined)answers[a.question_id]=Number(a.selected_option);});
-  active=true;done=false;submitting=false;advancing=false;saveErrors.clear();saveQueue=Promise.resolve();
-  show("s-exam");$("timer").classList.remove("hide");
-  await loadCurrentQuestion();
-  if(active){clearInterval(clockTimer);clockTimer=setInterval(updateClocks,200);updateClocks();}
- }catch(error){msg("e-inst",clean(error.message));}
- finally{b.disabled=false;}
-};
-
-async function rpcCurrent(){
- const {data,error}=await requireDb().rpc("get_current_exam_question",{p_attempt_id:attempt,p_access_token:accessToken});
- if(error)throw error;
- if(!data)throw new Error("O servidor não devolveu a pergunta actual.");
- return data;
-}
-
-async function loadCurrentQuestion(){
- if(!active||done||advancing)return;
- advancing=true;
- try{
-  await saveQueue;
-  const data=await rpcCurrent();
-  if(data.finished){
-   if(data.reason==="completed"||data.reason==="expired"){await submitExam(true);return;}
-   throw new Error("A prova foi encerrada pelo servidor.");
-  }
-  const serverSeconds=Number(data.seconds_left);
-  currentQuestion={
-   id:data.question_id,
-   text:data.question_text||data.text||"Pergunta sem texto",
-   options:normaliseOptions(data.options),
-   position:Number(data.position),
-   total:Number(data.total)||totalQuestions,
-   secondsLeft:Number.isFinite(serverSeconds)&&serverSeconds>=0?serverSeconds:36
-  };
-  totalQuestions=currentQuestion.total||totalQuestions;
-  questionDeadline=Date.now()+Math.max(0,currentQuestion.secondsLeft)*1000;
-  saveSession();
-  renderQuestion();
- }catch(error){msg("e-exam","Não foi possível carregar a pergunta. "+clean(error.message));}
- finally{advancing=false;}
-}
-
-function normaliseOptions(raw){
- let arr=raw;
- if(typeof arr==="string"){try{arr=JSON.parse(arr);}catch(_){arr=[];}}
- if(!Array.isArray(arr))return [];
- return arr.map((v,i)=>({index:i,text:typeof v==="string"?v:(v&&typeof v==="object"?(v.text??v.label??v.option??JSON.stringify(v)):String(v))}));
-}
-
-function renderQuestion(){
- if(!currentQuestion)return;
- $("q-count").textContent=`Questão ${currentQuestion.position} de ${currentQuestion.total}`;
- $("q-progress").style.width=`${Math.min(100,(currentQuestion.position/currentQuestion.total)*100)}%`;
- $("q-text").textContent=currentQuestion.text;
- $("q-opts").innerHTML="";
- if(!currentQuestion.options.length){msg("e-exam","Esta pergunta não contém opções válidas. Contacte a chefia.");return;}
- currentQuestion.options.forEach((o,k)=>{
-  const label=document.createElement("label");
-  label.className="opt"+(answers[currentQuestion.id]===o.index?" sel":"");
-  const radio=document.createElement("input");radio.type="radio";radio.name="current-q";radio.checked=answers[currentQuestion.id]===o.index;
-  radio.onchange=()=>selectAnswer(currentQuestion.id,o.index);
-  const span=document.createElement("span");span.textContent=String.fromCharCode(65+k)+") "+o.text;
-  label.append(radio,span);$("q-opts").append(label);
+  const data=await rpc('start_exam',{p:candidate});
+  if(!data||!data.attempt_id||!data.access_token)throw new Error('O servidor não devolveu os dados necessários para iniciar a prova.');
+  attemptId=data.attempt_id;accessToken=data.access_token;
+  deadline=new Date(data.expires_at).getTime();
+  $('candidateLabel').textContent=candidate.full_name;
+  hide('registration');show('exam');startGlobalClock();await loadQuestion();
+ }catch(ex){err('formError',friendly(ex));}
+ finally{$('startBtn').disabled=false;$('startBtn').textContent='Iniciar avaliação';}
+});
+function friendly(e){return (e&&e.message?e.message:String(e)).replace(/^.*?:\s*/,'');}
+function startGlobalClock(){clearInterval(globalTick);const tick=()=>{let left=Math.max(0,Math.floor((deadline-Date.now())/1000));$('globalTimer').textContent=`${String(Math.floor(left/60)).padStart(2,'0')}:${String(left%60).padStart(2,'0')}`;if(left<=0){clearInterval(globalTick);submitExam(true).catch(ex=>err('examError',friendly(ex)));}};tick();globalTick=setInterval(tick,1000);}
+async function loadQuestion(){
+ if(submitting)return;
+ err('examError','');
+ let q=await rpc('get_current_exam_question',{p_attempt_id:attemptId,p_access_token:accessToken});
+ if(q.finished){await submitExam(q.reason==='expired');return;}
+ current=q;questionSeconds=Number(q.seconds_left??36);
+ $('counter').textContent=`Pergunta ${q.position} de ${q.total}`;
+ $('progressBar').style.width=`${Math.max(0,((q.position-1)/q.total)*100)}%`;
+ $('questionText').textContent=q.question_text||'';
+ const opts=Array.isArray(q.options)?q.options:(typeof q.options==='object'?Object.values(q.options):[]);
+ $('options').innerHTML='';
+ opts.forEach((opt,i)=>{
+  const label=document.createElement('label');label.className='option';
+  const input=document.createElement('input');input.type='radio';input.name='answer';input.value=i;
+  if(answers[q.question_id]===i)input.checked=true;
+  input.addEventListener('change',()=>saveAnswer(i,false));
+  const span=document.createElement('span');span.textContent=typeof opt==='string'?opt:(opt?.text??JSON.stringify(opt));
+  label.append(input,span);$('options').append(label);
  });
- updateQuestionClock();
+ $('saveNextBtn').disabled=false;startQuestionClock();
 }
-
-function selectAnswer(questionId,selectedOption){
- if(!active||done||!currentQuestion||currentQuestion.id!==questionId)return;
- if(Date.now()>=questionDeadline){updateClocks();return;}
- answers[questionId]=selectedOption;
- renderQuestion();
- persistAnswer(questionId,selectedOption);
-}
-
-function persistAnswer(questionId,selectedOption){
- if(!active||!attempt||!accessToken)return Promise.resolve();
- saveQueue=saveQueue.then(async()=>{
-  const {error}=await requireDb().rpc("save_exam_answer",{
-   p_attempt_id:attempt,p_access_token:accessToken,
-   p_question_id:questionId,p_selected_option:selectedOption
-  });
-  if(error)throw error;
-  saveErrors.delete(questionId);
-  if(saveErrors.size===0)msg("e-exam","");
- }).catch(error=>{
-  saveErrors.add(questionId);
-  msg("e-exam","Não foi possível confirmar a gravação no servidor. A resposta permanece nesta página e será incluída na submissão, se a ligação for restabelecida. "+clean(error.message));
- });
- return saveQueue;
-}
-
-function updateQuestionClock(){
- if(!currentQuestion)return;
- const left=Math.max(0,Math.ceil((questionDeadline-Date.now())/1000));
- $("q-clock").textContent=left+" s";
- $("q-clock").style.color=left<=10?"var(--bad)":"var(--g900)";
-}
-
-function updateClocks(){
- if(!active||done||submitting)return;
- const overall=Math.max(0,expiresAt-(Date.now()+serverOffset));
- const mm=Math.floor(overall/60000),ss=Math.floor((overall%60000)/1000);
- $("timer").textContent=String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0");
- $("timer").classList.toggle("low",overall<=300000);
- updateQuestionClock();
- if(overall<=0){finishAtDeadline();return;}
- if(currentQuestion&&Date.now()>=questionDeadline){advanceQuestion();}
-}
-
-async function advanceQuestion(){
- if(!active||done||advancing||submitting)return;
- advancing=true;
+function startQuestionClock(){clearInterval(questionTick);const tick=()=>{$('questionTimer').textContent=`Tempo da pergunta: ${questionSeconds} s`;if(questionSeconds<=0){clearInterval(questionTick);advanceQuestion();}else questionSeconds--;};tick();questionTick=setInterval(tick,1000);}
+async function saveAnswer(index,showError=true){
+ if(!current)return false;
+ answers[current.question_id]=index;
  try{
-  await saveQueue;
-  const data=await rpcCurrent();
-  if(data.finished){await submitExam(true);return;}
-  const serverSeconds=Number(data.seconds_left);
-  currentQuestion={
-   id:data.question_id,text:data.question_text||data.text||"Pergunta sem texto",
-   options:normaliseOptions(data.options),position:Number(data.position),
-   total:Number(data.total)||totalQuestions,
-   secondsLeft:Number.isFinite(serverSeconds)&&serverSeconds>=0?serverSeconds:36
-  };
-  totalQuestions=currentQuestion.total||totalQuestions;
-  questionDeadline=Date.now()+Math.max(0,currentQuestion.secondsLeft)*1000;
-  saveSession();
-  msg("e-exam","");renderQuestion();
- }catch(error){
-  msg("e-exam","Falha ao avançar. A tentar novamente automaticamente. "+clean(error.message));
-  questionDeadline=Date.now()+1500;
- }finally{advancing=false;}
+  const ok=await rpc('save_exam_answer',{p_attempt_id:attemptId,p_access_token:accessToken,p_question_id:current.question_id,p_selected_option:index});
+  if(ok===false){if(showError)err('examError','O tempo desta pergunta terminou. A avaliação avançará para a próxima.');return false;}
+  return true;
+ }catch(ex){if(showError)err('examError',friendly(ex));return false;}
 }
-
-async function finishAtDeadline(){
- // submit_exam aceita a submissão dentro da tolerância de 2 minutos
- // definida no servidor; evita marcar a tentativa como expirada antes do cálculo.
- await submitExam(true);
-}
-
-function violation(type){
- if(!active||!attempt||!accessToken)return;
- $("warn").classList.remove("show");
- requireDb().rpc("log_violation",{
-  p_attempt:attempt,p_type:type,
-  p_details:{at:new Date().toISOString()},p_access_token:accessToken
- }).then(({error})=>{if(error)msg("e-exam","Não foi possível registar uma ocorrência: "+clean(error.message));});
-}
-document.addEventListener("visibilitychange",()=>{if(document.hidden)violation("mudanca_separador");});
-window.addEventListener("blur",()=>{if(!document.hidden)violation("perda_foco");});
-
-async function submitExam(auto){
- if(done||submitting||!active)return;
- submitting=true;
- msg("e-exam","A guardar respostas e a calcular a classificação…");
+async function advanceQuestion(){if(submitting)return;clearInterval(questionTick);$('saveNextBtn').disabled=true;try{await loadQuestion();}catch(ex){err('examError',friendly(ex));$('saveNextBtn').disabled=false;}}
+$('saveNextBtn').addEventListener('click',async()=>{
+ if(!current)return;
+ const selected=document.querySelector('input[name="answer"]:checked');
+ if(selected){const ok=await saveAnswer(Number(selected.value));if(!ok)return;}
+ await advanceQuestion();
+});
+async function submitExam(auto=false){
+ if(submitting)return;submitting=true;clearInterval(globalTick);clearInterval(questionTick);
+ $('saveNextBtn').disabled=true;
  try{
-  await saveQueue;
   const payload=Object.entries(answers).map(([question_id,selected])=>({question_id,selected}));
-  const {data,error}=await requireDb().rpc("submit_exam",{p_attempt:attempt,p_answers:payload,p_access_token:accessToken});
-  if(error)throw error;
-  if(!data||data.score===undefined)throw new Error("O servidor não devolveu a classificação.");
-  resultData=data;done=true;active=false;submitting=false;
-  clearInterval(clockTimer);$("timer").classList.add("hide");
-  const score=Number(data.score);
-  $("r-score").textContent=score.toFixed(1).replace(".",",");
-  $("r-state").textContent=data.approved?"Aprovado":"Reprovado";
-  $("r-state").className=data.approved?"ok":"no";
-  const answered=Number(data.answered??data.answered_count??Object.keys(answers).length);
-  const correct=Number(data.correct)||0;
-  const unanswered=Math.max(0,totalQuestions-answered);
-  $("r-detail").textContent=`${correct} respostas correctas; ${answered} respondidas; ${unanswered} sem resposta. Nota mínima: 10 valores.`+(auto?" A prova foi submetida automaticamente.":"");
-  show("s-res");
-  $("b-pdf").disabled=false;
-  clearSavedSession();
- }catch(error){
-  submitting=false;
-  msg("e-exam","Não foi possível concluir a submissão: "+clean(error.message)+". A prova permanece disponível para nova tentativa de submissão.");
- }
+  result=await rpc('submit_exam',{p_attempt:attemptId,p_answers:payload,p_access_token:accessToken});
+  hide('exam');show('feedback');
+  $('resultLine').innerHTML=`<span class="result">${Number(result.score??0).toFixed(2)} / 20</span> · ${result.approved?'Aprovado':'Não aprovado'} · ${result.correct??0} respostas correctas`;
+  $('pdfBtn').disabled=false;
+ }catch(ex){submitting=false;err('examError',friendly(ex));$('saveNextBtn').disabled=false;}
 }
-
-$("b-pdf").onclick=()=>{
- msg("pdf-error","");
+async function logViolation(type,details){try{if(attemptId)await rpc('log_violation',{p_attempt:attemptId,p_type:type,p_details:details||{}});}catch(_){}}
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&attemptId&&!submitting)logViolation('page_hidden',{event:'visibilitychange'});});
+window.addEventListener('blur',()=>{if(attemptId&&!submitting)logViolation('window_blur',{event:'blur'});});
+function makePdf(){
+ if(!result)return;
+ const {jsPDF}=window.jspdf;const doc=new jsPDF();
+ doc.setFont('helvetica','bold');doc.setFontSize(18);doc.text('HEMO-AVALIA',20,22);
+ doc.setFont('helvetica','normal');doc.setFontSize(11);
+ doc.text('Hospital Geral do Cuanza Norte – Mário Pinto de Andrade',20,32);
+ doc.text('Serviço de Hemoterapia | Comprovativo individual de avaliação',20,39);
+ doc.line(20,45,190,45);
+ const lines=[
+  `Nome: ${candidate.full_name}`,`Número de agente: ${candidate.agent_number}`,
+  `Categoria: ${candidate.category}`,`Instituição: HGKNMPA`,`Serviço: Hemoterapia`,
+  `Data: ${new Date().toLocaleString('pt-PT')}`,`Pontuação: ${Number(result.score??0).toFixed(2)} / 20`,
+  `Respostas correctas: ${result.correct??0}`,`Resultado: ${result.approved?'Aprovado':'Não aprovado'}`
+ ];
+ let y=58;lines.forEach(t=>{doc.text(t,20,y);y+=9;});
+ doc.line(20,y,190,y);y+=10;doc.setFont('helvetica','bold');doc.text('Documento individual do candidato',20,y);
+ doc.save(`HEMO-AVALIA_${(candidate.agent_number||'candidato').replace(/[^a-z0-9_-]/gi,'_')}.pdf`);
+}
+$('pdfBtn').addEventListener('click',makePdf);$('finalPdfBtn').addEventListener('click',makePdf);
+$('feedbackBtn').addEventListener('click',async()=>{
+ err('feedbackError','');const needs=$('needs').value.trim();
+ if(!needs){err('feedbackError','Indique as suas necessidades de capacitação antes de concluir.');$('needs').focus();return;}
+ $('feedbackBtn').disabled=true;
  try{
-  if(!resultData)throw new Error("A classificação ainda não foi confirmada pelo servidor.");
-  if(!window.jspdf||!window.jspdf.jsPDF)throw new Error("A biblioteca de PDF não carregou. Verifique a internet e tente novamente.");
-  const {jsPDF}=window.jspdf;const doc=new jsPDF();
-  const score=Number(resultData.score);
-  const answered=Number(resultData.answered??resultData.answered_count??Object.keys(answers).length);
-  const correct=Number(resultData.correct)||0;
-  const unanswered=Math.max(0,totalQuestions-answered);
-  const lines=[
-   "HEMO-AVALIA",
-   "Hospital Geral do Cuanza Norte – Mário Pinto de Andrade",
-   "Serviço de Hemoterapia",
-   "",
-   "COMPROVATIVO INDIVIDUAL DE AVALIAÇÃO",
-   "",
-   `Nome: ${P.full_name||""}`,
-   `Número de agente: ${P.agent_number||""}`,
-   `Categoria profissional: ${P.category||""}`,
-   `Instituição: HGKNMPA`,
-   `Serviço: Hemoterapia`,
-   `Data: ${new Date().toLocaleString("pt-AO")}`,
-   "",
-   `Questões da prova: ${totalQuestions}`,
-   `Questões respondidas: ${answered}`,
-   `Questões sem resposta: ${unanswered}`,
-   `Respostas correctas: ${correct}`,
-   `Classificação: ${score.toFixed(1).replace(".",",")} valores em 20`,
-   `Resultado: ${resultData.approved?"APROVADO":"REPROVADO"}`,
-   "",
-   "Nota mínima de aprovação: 10 valores.",
-   "",
-   "Documento gerado electronicamente pelo HEMO-AVALIA."
-  ];
-  let y=18;
-  lines.forEach((line,i)=>{
-   if(y>275){doc.addPage();y=18;}
-   if(i===0){doc.setFontSize(18);doc.setFont(undefined,"bold");}
-   else if(i===4){doc.setFontSize(13);doc.setFont(undefined,"bold");}
-   else{doc.setFontSize(10);doc.setFont(undefined,"normal");}
-   const wrapped=doc.splitTextToSize(line,175);
-   doc.text(wrapped,17,y);y+=wrapped.length*6+(line===""?2:1);
-  });
-  const safeName=(P.agent_number||"participante").replace(/[^a-zA-Z0-9_-]/g,"_");
-  doc.save(`HEMO-AVALIA_${safeName}.pdf`);
- }catch(error){msg("pdf-error",error.message||"Não foi possível gerar o PDF.");}
-};
-
-$("b-fb").onclick=async()=>{
- const suggestion=$("suggestion").value.trim(),needs=$("needs").value.trim();
- if(!suggestion&&!needs){msg("e-fb","Escreva pelo menos uma sugestão ou um tema de formação.");return;}
- if(!attempt||!accessToken){msg("e-fb","Não foi possível validar o acesso à sua tentativa.");return;}
- const b=$("b-fb");b.disabled=true;msg("e-fb","");
- const {error}=await requireDb().rpc("save_feedback",{p_attempt:attempt,p_suggestion:suggestion,p_needs:needs,p_access_token:accessToken});
- if(error){b.disabled=false;msg("e-fb",clean(error.message));return;}
- show("s-end");
-};
-// Mostra erros inesperados em vez de deixar os botões aparentemente inactivos.
-window.addEventListener("error",event=>{
- const message=event?.message||"Erro inesperado no JavaScript.";
- const target=!$("s-id").classList.contains("hide")?"e-id":
-              !$("s-inst").classList.contains("hide")?"e-inst":"e-exam";
- if($(target))msg(target,"Erro da página: "+message);
+  await rpc('save_feedback',{p_attempt:attemptId,p_suggestion:$('suggestion').value.trim(),p_needs:needs,p_access_token:accessToken});
+  hide('feedback');show('done');
+ }catch(ex){err('feedbackError',friendly(ex));$('feedbackBtn').disabled=false;}
 });
-
-// Recupera automaticamente a tentativa quando o candidato actualiza a página.
-restoreSession();
-</script>
+})();
+</script> 
 </body>
 </html>
