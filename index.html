@@ -55,10 +55,10 @@ button{border:0;border-radius:9px;padding:13px 19px;background:var(--green);colo
 <p class="hint">Antes de terminar, deixe a sua sugestão e indique as necessidades de capacitação identificadas.</p>
 <div class="field"><label for="suggestion">Sugestões para melhorar o Serviço de Hemoterapia</label><textarea id="suggestion"></textarea></div>
 <div class="field" style="margin-top:12px"><label for="needs">Áreas em que necessita de capacitação *</label><textarea id="needs" required></textarea></div>
-<div class="actions"><button id="feedbackBtn" type="button">Enviar feedback e concluir</button><button id="pdfBtn" class="secondary" type="button">Descarregar meu PDF</button></div>
+<div class="actions"><button id="feedbackBtn" type="button">Enviar sugestões e concluir</button></div>
 <div id="feedbackError" class="error" role="alert"></div>
 </section>
-<section id="done" class="panel hidden"><h2>Obrigado pela participação.</h2><p>O seu feedback foi registado. Guarde o PDF individual da avaliação.</p><button id="finalPdfBtn" type="button">Descarregar PDF</button></section>
+<section id="done" class="panel hidden"><h2>Obrigado pela participação.</h2><p>As suas sugestões e necessidades de capacitação foram registadas. Agora pode descarregar o seu comprovativo individual.</p><button id="finalPdfBtn" type="button">Descarregar PDF individual</button></section>
 </main>
 <script>
 (() => {
@@ -114,10 +114,12 @@ async function loadQuestion(){
    if(advancing||!current)return;
    advancing=true;clearInterval(questionTick);
    document.querySelectorAll('input[name="answer"]').forEach(el=>el.disabled=true);
-   const ok=await saveAnswer(i,true);
+   // Guarda a resposta no servidor e avança logo após a selecção.
+   // Mesmo que a chamada de gravação falhe momentaneamente, a resposta
+   // permanece no mapa local e será enviada novamente na submissão final.
+   await saveAnswer(i,false);
    advancing=false;
-   if(ok){await advanceQuestion();}
-   else{document.querySelectorAll('input[name="answer"]').forEach(el=>el.disabled=false);startQuestionClock();}
+   await advanceQuestion();
   });
   const span=document.createElement('span');span.textContent=typeof opt==='string'?opt:(opt?.text??JSON.stringify(opt));
   label.append(input,span);$('options').append(label);
@@ -149,7 +151,6 @@ async function submitExam(auto=false){
   result=await rpc('submit_exam',{p_attempt:attemptId,p_answers:payload,p_access_token:accessToken});
   hide('exam');show('feedback');
   $('resultLine').innerHTML=`<span class="result">${Number(result.score??0).toFixed(2)} / 20</span> · ${result.approved?'Aprovado':'Não aprovado'} · ${result.correct??0} respostas correctas`;
-  $('pdfBtn').disabled=false;
  }catch(ex){submitting=false;err('examError',friendly(ex));$('saveNextBtn').disabled=false;}
 }
 async function logViolation(type,details){try{if(attemptId)await rpc('log_violation',{p_attempt:attemptId,p_type:type,p_details:details||{}});}catch(_){}}
@@ -173,7 +174,7 @@ function makePdf(){
  doc.line(20,y,190,y);y+=10;doc.setFont('helvetica','bold');doc.text('Documento individual do candidato',20,y);
  doc.save(`HEMO-AVALIA_${(candidate.agent_number||'candidato').replace(/[^a-z0-9_-]/gi,'_')}.pdf`);
 }
-$('pdfBtn').addEventListener('click',makePdf);$('finalPdfBtn').addEventListener('click',makePdf);
+$('finalPdfBtn').addEventListener('click',makePdf);
 $('feedbackBtn').addEventListener('click',async()=>{
  err('feedbackError','');const needs=$('needs').value.trim();
  if(!needs){err('feedbackError','Indique as suas necessidades de capacitação antes de concluir.');$('needs').focus();return;}
