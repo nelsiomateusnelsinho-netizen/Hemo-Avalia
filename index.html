@@ -112,14 +112,16 @@ async function loadQuestion(){
   if(answers[q.question_id]===i)input.checked=true;
   input.addEventListener('change',async()=>{
    if(advancing||!current)return;
-   advancing=true;clearInterval(questionTick);
+   advancing=true;
+   clearInterval(questionTick);
    document.querySelectorAll('input[name="answer"]').forEach(el=>el.disabled=true);
-   // Guarda a resposta no servidor e avança logo após a selecção.
-   // Mesmo que a chamada de gravação falhe momentaneamente, a resposta
-   // permanece no mapa local e será enviada novamente na submissão final.
-   await saveAnswer(i,false);
+   // Regista primeiro no mapa local (saveAnswer faz isso antes da chamada RPC).
+   // A gravação remota decorre em segundo plano para não bloquear a navegação.
+   const saveTask=saveAnswer(i,false);
    advancing=false;
    await advanceQuestion();
+   // Se o servidor rejeitar/falhar, a resposta local continua no payload final.
+   saveTask.then(ok=>{if(!ok)err('examError','A resposta ficou guardada temporariamente nesta sessão; será reenviada ao concluir a prova.');});
   });
   const span=document.createElement('span');span.textContent=typeof opt==='string'?opt:(opt?.text??JSON.stringify(opt));
   label.append(input,span);$('options').append(label);
