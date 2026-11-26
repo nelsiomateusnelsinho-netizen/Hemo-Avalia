@@ -373,4 +373,112 @@ async function finishAtDeadline(){
 
 function violation(type){
  if(!active||!attempt||!accessToken)return;
- $("warn").classList.remo
+ $("warn").classList.remove("hide");
+ requireDb().rpc("log_violation",{
+  p_attempt:attempt,p_type:type,
+  p_details:{at:new Date().toISOString()},p_access_token:accessToken
+ }).then(({error})=>{if(error)msg("e-exam","Não foi possível registar uma ocorrência: "+clean(error.message));});
+}
+document.addEventListener("visibilitychange",()=>{if(document.hidden)violation("mudanca_separador");});
+window.addEventListener("blur",()=>{if(!document.hidden)violation("perda_foco");});
+
+async function submitExam(auto){
+ if(done||submitting||!active)return;
+ submitting=true;
+ msg("e-exam","A guardar respostas e a calcular a classificação…");
+ try{
+  await saveQueue;
+  const payload=Object.entries(answers).map(([question_id,selected])=>({question_id,selected}));
+  const {data,error}=await requireDb().rpc("submit_exam",{p_attempt:attempt,p_answers:payload,p_access_token:accessToken});
+  if(error)throw error;
+  if(!data||data.score===undefined)throw new Error("O servidor não devolveu a classificação.");
+  resultData=data;done=true;active=false;submitting=false;
+  clearInterval(clockTimer);$("timer").classList.add("hide");
+  const score=Number(data.score);
+  $("r-score").textContent=score.toFixed(1).replace(".",",");
+  $("r-state").textContent=data.approved?"Aprovado":"Reprovado";
+  $("r-state").className=data.approved?"ok":"no";
+  const answered=Number(data.answered??data.answered_count??Object.keys(answers).length);
+  const correct=Number(data.correct)||0;
+  const unanswered=Math.max(0,totalQuestions-answered);
+  $("r-detail").textContent=`${correct} respostas correctas; ${answered} respondidas; ${unanswered} sem resposta. Nota mínima: 10 valores.`+(auto?" A prova foi submetida automaticamente.":"");
+  show("s-res");
+  $("b-pdf").disabled=false;
+  clearSavedSession();
+ }catch(error){
+  submitting=false;
+  msg("e-exam","Não foi possível concluir a submissão: "+clean(error.message)+". A prova permanece disponível para nova tentativa de submissão.");
+ }
+}
+
+$("b-pdf").onclick=()=>{
+ msg("pdf-error","");
+ try{
+  if(!resultData)throw new Error("A classificação ainda não foi confirmada pelo servidor.");
+  if(!window.jspdf||!window.jspdf.jsPDF)throw new Error("A biblioteca de PDF não carregou. Verifique a internet e tente novamente.");
+  const {jsPDF}=window.jspdf;const doc=new jsPDF();
+  const score=Number(resultData.score);
+  const answered=Number(resultData.answered??resultData.answered_count??Object.keys(answers).length);
+  const correct=Number(resultData.correct)||0;
+  const unanswered=Math.max(0,totalQuestions-answered);
+  const lines=[
+   "HEMO-AVALIA",
+   "Hospital Geral do Cuanza Norte – Mário Pinto de Andrade",
+   "Serviço de Hemoterapia",
+   "",
+   "COMPROVATIVO INDIVIDUAL DE AVALIAÇÃO",
+   "",
+   `Nome: ${P.full_name||""}`,
+   `Número de agente: ${P.agent_number||""}`,
+   `Categoria profissional: ${P.category||""}`,
+   `Instituição: HGKNMPA`,
+   `Serviço: Hemoterapia`,
+   `Data: ${new Date().toLocaleString("pt-AO")}`,
+   "",
+   `Questões da prova: ${totalQuestions}`,
+   `Questões respondidas: ${answered}`,
+   `Questões sem resposta: ${unanswered}`,
+   `Respostas correctas: ${correct}`,
+   `Classificação: ${score.toFixed(1).replace(".",",")} valores em 20`,
+   `Resultado: ${resultData.approved?"APROVADO":"REPROVADO"}`,
+   "",
+   "Nota mínima de aprovação: 10 valores.",
+   "",
+   "Documento gerado electronicamente pelo HEMO-AVALIA."
+  ];
+  let y=18;
+  lines.forEach((line,i)=>{
+   if(y>275){doc.addPage();y=18;}
+   if(i===0){doc.setFontSize(18);doc.setFont(undefined,"bold");}
+   else if(i===4){doc.setFontSize(13);doc.setFont(undefined,"bold");}
+   else{doc.setFontSize(10);doc.setFont(undefined,"normal");}
+   const wrapped=doc.splitTextToSize(line,175);
+   doc.text(wrapped,17,y);y+=wrapped.length*6+(line===""?2:1);
+  });
+  const safeName=(P.agent_number||"participante").replace(/[^a-zA-Z0-9_-]/g,"_");
+  doc.save(`HEMO-AVALIA_${safeName}.pdf`);
+ }catch(error){msg("pdf-error",error.message||"Não foi possível gerar o PDF.");}
+};
+
+$("b-fb").onclick=async()=>{
+ const suggestion=$("suggestion").value.trim(),needs=$("needs").value.trim();
+ if(!suggestion&&!needs){msg("e-fb","Escreva pelo menos uma sugestão ou um tema de formação.");return;}
+ if(!attempt||!accessToken){msg("e-fb","Não foi possível validar o acesso à sua tentativa.");return;}
+ const b=$("b-fb");b.disabled=true;msg("e-fb","");
+ const {error}=await requireDb().rpc("save_feedback",{p_attempt:attempt,p_suggestion:suggestion,p_needs:needs,p_access_token:accessToken});
+ if(error){b.disabled=false;msg("e-fb",clean(error.message));return;}
+ show("s-end");
+};
+// Mostra erros inesperados em vez de deixar os botões aparentemente inactivos.
+window.addEventListener("error",event=>{
+ const message=event?.message||"Erro inesperado no JavaScript.";
+ const target=!$("s-id").classList.contains("hide")?"e-id":
+              !$("s-inst").classList.contains("hide")?"e-inst":"e-exam";
+ if($(target))msg(target,"Erro da página: "+message);
+});
+
+// Recupera automaticamente a tentativa quando o candidato actualiza a página.
+restoreSession();
+</script>
+</body>
+</html>
