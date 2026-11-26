@@ -46,7 +46,7 @@ button{border:0;border-radius:9px;padding:13px 19px;background:var(--green);colo
 <div class="topline"><strong id="counter">Pergunta 1 de 50</strong><span class="status" id="questionTimer">Tempo da pergunta: 36 s</span></div>
 <div id="questionText" class="question"></div><div id="options"></div>
 <div class="actions"><button id="saveNextBtn" type="button">Guardar e continuar</button></div><div id="examError" class="error" role="alert"></div>
-<p class="hint">A avaliação avança automaticamente após 36 segundos por pergunta. Não feche esta página durante a prova.</p>
+<p class="hint">Ao seleccionar uma resposta, a plataforma guarda-a e avança imediatamente. Se não responder, avança após 36 segundos. Não feche esta página durante a prova.</p>
 </section>
 
 <section id="feedback" class="panel hidden">
@@ -67,7 +67,7 @@ const SUPABASE_URL='https://ltlhrgybrqrrsgfdleyp.supabase.co';
 const SUPABASE_ANON_KEY='sb_publishable_V7N4B62Po4MQYw0fpKUFjg_N3IemBEI';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 const $=id=>document.getElementById(id);
-let attemptId=null, accessToken=null, current=null, candidate={}, answers={}, result=null, deadline=null, globalTick=null, questionTick=null, questionSeconds=36, submitting=false;
+let attemptId=null, accessToken=null, current=null, candidate={}, answers={}, result=null, deadline=null, globalTick=null, questionTick=null, questionSeconds=36, submitting=false, advancing=false;
 const show=(id)=>$(id).classList.remove('hidden'), hide=(id)=>$(id).classList.add('hidden');
 const err=(id,msg)=>$(id).textContent=msg||'';
 const rpc=async(name,args)=>{const {data,error}=await db.rpc(name,args);if(error)throw error;return data};
@@ -110,7 +110,15 @@ async function loadQuestion(){
   const label=document.createElement('label');label.className='option';
   const input=document.createElement('input');input.type='radio';input.name='answer';input.value=i;
   if(answers[q.question_id]===i)input.checked=true;
-  input.addEventListener('change',()=>saveAnswer(i,false));
+  input.addEventListener('change',async()=>{
+   if(advancing||!current)return;
+   advancing=true;clearInterval(questionTick);
+   document.querySelectorAll('input[name="answer"]').forEach(el=>el.disabled=true);
+   const ok=await saveAnswer(i,true);
+   advancing=false;
+   if(ok){await advanceQuestion();}
+   else{document.querySelectorAll('input[name="answer"]').forEach(el=>el.disabled=false);startQuestionClock();}
+  });
   const span=document.createElement('span');span.textContent=typeof opt==='string'?opt:(opt?.text??JSON.stringify(opt));
   label.append(input,span);$('options').append(label);
  });
@@ -176,6 +184,6 @@ $('feedbackBtn').addEventListener('click',async()=>{
  }catch(ex){err('feedbackError',friendly(ex));$('feedbackBtn').disabled=false;}
 });
 })();
-</script> 
+</script>
 </body>
 </html>
