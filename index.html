@@ -115,35 +115,58 @@ async function loadQuestion(){
    advancing=true;
    clearInterval(questionTick);
    document.querySelectorAll('input[name="answer"]').forEach(el=>el.disabled=true);
-   // Regista primeiro no mapa local (saveAnswer faz isso antes da chamada RPC).
-   // A gravação remota decorre em segundo plano para não bloquear a navegação.
-   const saveTask=saveAnswer(i,false);
-   advancing=false;
-   await advanceQuestion();
-   // Se o servidor rejeitar/falhar, a resposta local continua no payload final.
-   saveTask.then(ok=>{if(!ok)err('examError','A resposta ficou guardada temporariamente nesta sessão; será reenviada ao concluir a prova.');});
+   try{
+    const saved=await saveAnswer(i,false);
+    if(saved){
+     await advanceQuestion();
+    }else{
+     // Se o servidor recusou por o tempo ter terminado, consulta a posição
+     // oficial; se houve falha de rede, mantém a pergunta para nova tentativa.
+     await loadQuestion();
+    }
+   }catch(ex){
+    err('examError','Não foi possível confirmar a gravação. Verifique a ligação e tente seleccionar novamente. '+friendly(ex));
+    document.querySelectorAll('input[name="answer"]').forEach(el=>el.disabled=false);
+    startQuestionClock();
+   }finally{advancing=false;}
   });
   const span=document.createElement('span');span.textContent=typeof opt==='string'?opt:(opt?.text??JSON.stringify(opt));
   label.append(input,span);$('options').append(label);
  });
  $('saveNextBtn').disabled=false;startQuestionClock();
 }
-function startQuestionClock(){clearInterval(questionTick);const tick=()=>{$('questionTimer').textContent=`Tempo da pergunta: ${questionSeconds} s`;if(questionSeconds<=0){clearInterval(questionTick);advanceQuestion();}else questionSeconds--;};tick();questionTick=setInterval(tick,1000);}
+function startQuestionClock(){clearInterval(questionTick);const tick=()=>{$('questionTimer').textContent=`Tempo da pergunta: ${questionSeconds} s`;if(questionSeconds<=0){clearInterval(questionTick);if(!advancing){advancing=true;advanceQuestion().finally(()=>{advancing=false;});}}else questionSeconds--;};tick();questionTick=setInterval(tick,1000);}
 async function saveAnswer(index,showError=true){
  if(!current)return false;
- answers[current.question_id]=index;
+ const questionId=current.question_id;
  try{
-  const ok=await rpc('save_exam_answer',{p_attempt_id:attemptId,p_access_token:accessToken,p_question_id:current.question_id,p_selected_option:index});
-  if(ok===false){if(showError)err('examError','O tempo desta pergunta terminou. A avaliação avançará para a próxima.');return false;}
+  const ok=await rpc('save_exam_answer',{p_attempt_id:attemptId,p_access_token:accessToken,p_question_id:questionId,p_selected_option:index});
+  if(ok!==true){if(showError)err('examError','O tempo desta pergunta terminou. A posição será actualizada pelo servidor.');return false;}
+  answers[questionId]=index;
   return true;
  }catch(ex){if(showError)err('examError',friendly(ex));return false;}
 }
-async function advanceQuestion(){if(submitting)return;clearInterval(questionTick);$('saveNextBtn').disabled=true;try{await loadQuestion();}catch(ex){err('examError',friendly(ex));$('saveNextBtn').disabled=false;}}
+async function advanceQuestion(){
+ if(submitting)return;
+ clearInterval(questionTick);$('saveNextBtn').disabled=true;
+ try{await loadQuestion();}
+ catch(ex){err('examError',friendly(ex));$('saveNextBtn').disabled=false;}
+}
 $('saveNextBtn').addEventListener('click',async()=>{
- if(!current)return;
- const selected=document.querySelector('input[name="answer"]:checked');
- if(selected){const ok=await saveAnswer(Number(selected.value));if(!ok)return;}
- await advanceQuestion();
+ if(!current||advancing||submitting)return;
+ advancing=true;clearInterval(questionTick);$('saveNextBtn').disabled=true;
+ try{
+  const selected=document.querySelector('input[name="answer"]:checked');
+  if(selected){
+   const saved=await saveAnswer(Number(selected.value),true);
+   if(!saved){
+    document.querySelectorAll('input[name="answer"]').forEach(el=>el.disabled=false);
+    startQuestionClock();
+    return;
+   }
+  }
+  await advanceQuestion();
+ }finally{advancing=false;}
 });
 async function submitExam(auto=false){
  if(submitting)return;submitting=true;clearInterval(globalTick);clearInterval(questionTick);
