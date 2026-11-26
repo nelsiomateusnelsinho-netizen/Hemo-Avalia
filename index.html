@@ -373,7 +373,7 @@ async function finishAtDeadline(){
 
 function violation(type){
  if(!active||!attempt||!accessToken)return;
- $("warn").classList.remove("hide");
+ $("warn").classList.remove("show");
  requireDb().rpc("log_violation",{
   p_attempt:attempt,p_type:type,
   p_details:{at:new Date().toISOString()},p_access_token:accessToken
